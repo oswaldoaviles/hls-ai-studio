@@ -28,6 +28,7 @@ function ok(nombre, bien, detalle = '') {
   console.log(`${bien ? '✓' : '✗'} ${nombre}${detalle ? `\n    ${String(detalle).split('\n').join('\n    ')}` : ''}`)
 }
 const nota = (m) => console.log(`  · ${m}`)
+const CRM = /leadconnectorhq\.com|msgsndr\.com|gohighlevel\.com\/.*(form|survey)/
 
 const { chromium } = await cargar('playwright-core')
 const navegador = await chromium.launch({ channel: 'chrome', headless: true })
@@ -57,8 +58,10 @@ async function probar(vista, opciones) {
   const destinos = []
   const medios = new Map()
   p.on('pageerror', (e) => errores.push(String(e.message || e)))
+  // the CRM request this test aborts on purpose is not the page's error
+  const esCrm = (u) => CRM.test(u || '')
   p.on('console', (m) => {
-    if (m.type() === 'error') errores.push(m.text())
+    if (m.type() === 'error' && !(/^Failed to load resource/.test(m.text()) && esCrm(m.location()?.url))) errores.push(m.text())
   })
   p.on('response', (r) => {
     const u = r.url()
@@ -66,10 +69,10 @@ async function probar(vista, opciones) {
     else if (r.status() >= 400) fallidos.push(`${r.status()} ${u}`)
   })
   p.on('requestfailed', (r) => {
-    if (!/ERR_ABORTED/.test(r.failure()?.errorText || '')) fallidos.push(`${r.failure()?.errorText} ${r.url()}`)
+    if (!/ERR_ABORTED/.test(r.failure()?.errorText || '') && !esCrm(r.url())) fallidos.push(`${r.failure()?.errorText} ${r.url()}`)
   })
   // the CRM: every POST is captured and aborted (no contact is created)
-  await ctx.route(/leadconnectorhq\.com|msgsndr\.com|gohighlevel\.com\/.*(form|survey)/, async (r) => {
+  await ctx.route(CRM, async (r) => {
     if (r.request().method() !== 'POST') return r.continue()
     envios.push({ url: r.request().url(), cuerpo: r.request().postData() || '', tipo: r.request().headers()['content-type'] || '' })
     return r.abort()
