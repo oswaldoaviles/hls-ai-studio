@@ -1,0 +1,181 @@
+<!doctype html>
+<!--
+  Página de prueba del skill migrar-a-ai-studio: un sitio de scroll-craft con lo
+  que un alumno suele traer (fuentes de Google, og:image, videos para scrub, un
+  formulario, scripts propios, JSON-LD, un selector "body >" y una lista que
+  depende de los estilos del navegador). Los assets los genera crear-assets.mjs.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Faro Cerámica · Clases de torno en Monterrey</title>
+<meta name="description" content="Aprende torno de alfarero en grupos de seis, con barro, horno y esmaltes incluidos.">
+<meta property="og:title" content="Faro Cerámica · Clases de torno">
+<meta property="og:image" content="assets/og.jpg">
+<meta name="theme-color" content="#0b0a09">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c8643b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Geist:wght@400;500&display=swap">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  :root {
+    --sc-canvas:     #0b0a09;
+    --sc-surface:    #16130f;
+    --sc-ink:        #f3ede4;
+    --sc-ink-soft:   #a89d8f;
+    --sc-accent:     #e0874f;
+    --sc-accent-ink: #140c07;
+    --sc-font-display: "Archivo", system-ui, sans-serif;
+    --sc-font-text:    "Geist", system-ui, sans-serif;
+  }
+  body > .site-bar {
+    position: fixed; inset: 0 0 auto 0; z-index: 20;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px;
+    background: linear-gradient(var(--sc-canvas), transparent);
+  }
+  .marca { font-family: var(--sc-font-display); font-weight: 800; letter-spacing: .02em; color: var(--sc-ink); text-decoration: none; }
+  .site-bar .cta { padding: 10px 16px; font-size: 14px; }
+  .cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 16px 26px; border-radius: 999px;
+    background: var(--sc-accent); color: var(--sc-accent-ink);
+    font: 600 16px/1 var(--sc-font-text); text-decoration: none; border: 0; cursor: pointer;
+  }
+  .argument p { font: 600 clamp(28px, 5vw, 64px)/1.08 var(--sc-font-display); max-width: 16ch; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 72px); align-items: center; }
+  .split img { width: 100%; height: auto; border-radius: 18px; }
+  .lista { margin: 18px 0 0; color: var(--sc-ink-soft); line-height: 1.6; }
+  .rail { display: flex; gap: 28px; padding: 0 6vw; align-items: center; height: 100%; }
+  .rail__lead { flex: 0 0 min(360px, 70vw); }
+  .item { flex: 0 0 min(340px, 72vw); }
+  .item img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 14px; }
+  .item h3 { font-family: var(--sc-font-display); font-size: 22px; margin: 14px 0 4px; }
+  .item p { color: var(--sc-ink-soft); margin: 0; }
+  .close { display: grid; place-items: center; text-align: center; }
+  .close__inner { display: grid; gap: 22px; justify-items: center; padding: 0 20px; }
+  .registro { display: grid; gap: 10px; width: min(420px, 100%); text-align: left; }
+  .registro label { font: 500 14px/1.2 var(--sc-font-text); color: var(--sc-ink-soft); }
+  .registro input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #3a332b; background: var(--sc-surface); color: var(--sc-ink); font: 400 16px/1.2 var(--sc-font-text); }
+  .registro .cta { justify-self: stretch; justify-content: center; margin-top: 6px; }
+  .registro[data-estado="enviado"]::after { content: "¡Listo! Te escribimos hoy."; color: var(--sc-accent); }
+  .foot { position: absolute; inset: auto 0 0 0; padding: 18px 20px calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: space-between; color: var(--sc-ink-soft); font-size: 13px; }
+  @media (max-width: 760px) {
+    .split { grid-template-columns: 1fr; }
+    .site-bar .cta { display: none; }
+  }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Faro Cerámica"}</script>
+</head>
+<body>
+
+<span data-sc-progress></span>
+<div class="sc-grain" aria-hidden="true"></div>
+
+<header class="site-bar">
+  <a class="marca" href="#top">FARO</a>
+  <a class="cta" href="#join">Reservar lugar</a>
+</header>
+
+<main id="top">
+
+  <section data-sc-act="scrub" data-sc-span="2.6" data-sc-dwell="0.34" data-sc-drift="#0b0a09">
+    <div data-sc-stage>
+      <img class="sc-stage__poster" src="assets/01-poster.webp" alt="">
+      <video data-sc-scrub data-sc-src="assets/01.mp4"
+             data-sc-src-mobile="assets/01-m.mp4" muted playsinline></video>
+      <div class="sc-scrim sc-scrim--lead" aria-hidden="true"></div>
+      <div class="sc-copy sc-copy--lead" data-sc-cue="0 0.78 0">
+        <h1 class="sc-display sc-display--xl" data-sc-kinetic="lines">Tus manos, en el barro, este sábado.</h1>
+        <p class="sc-body">Grupos de seis personas, con barro, horno y esmaltes incluidos.</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-sc-act="pin" data-sc-span="3.4" data-sc-drift="#16130f">
+    <div data-sc-stage class="argument">
+      <p data-sc-cue="0 0.32 0">Pasas el día frente a una pantalla.</p>
+      <p data-sc-cue="0.26 0.60">Nada de lo que haces se puede tocar.</p>
+      <p data-sc-cue="0.54 0.88">Y el fin de semana se va igual.</p>
+      <p data-sc-cue="0.82">Aquí sales con una taza hecha por ti.</p>
+    </div>
+  </section>
+
+  <section class="sc-section" data-sc-act="flow" data-sc-drift="#100e0c">
+    <div class="sc-wrap split">
+      <div class="sc-stack" data-sc-in data-sc-stagger="70">
+        <h2 class="sc-display sc-display--lg">Tres horas, una pieza.</h2>
+        <p class="sc-body">Empiezas centrando el barro y terminas con una pieza que se hornea esa misma semana.</p>
+        <ul class="lista">
+          <li>Barro y herramientas incluidos</li>
+          <li>Horneado y esmaltado en el taller</li>
+          <li>Máximo seis personas por grupo</li>
+        </ul>
+      </div>
+      <figure data-sc-reveal="left" data-sc-reveal-at="0.18 0.62">
+        <img src="assets/03.webp" width="1920" height="1080" alt="Manos centrando barro en un torno.">
+      </figure>
+    </div>
+  </section>
+
+  <section data-sc-act="scrub" data-sc-span="2.2" data-sc-dwell="0.28" data-sc-drift="#12100d">
+    <div data-sc-stage>
+      <img class="sc-stage__poster" src="assets/04-poster.webp" alt="">
+      <video data-sc-scrub data-sc-src="assets/04.mp4"
+             data-sc-src-mobile="assets/04-m.mp4" muted playsinline></video>
+      <div class="sc-scrim sc-scrim--trail" aria-hidden="true"></div>
+      <div class="sc-copy sc-copy--trail" data-sc-cue="0.14 0.86">
+        <h2 class="sc-display sc-display--lg" data-sc-kinetic="lines">Mil doscientos grados después.</h2>
+      </div>
+    </div>
+  </section>
+
+  <section data-sc-act="pan" data-sc-span="3.2" data-sc-drift="#0e0c0a">
+    <div data-sc-stage>
+      <div class="rail" data-sc-pan="0.06">
+        <div class="rail__lead sc-stack">
+          <h2 class="sc-display sc-display--md">Los cursos.</h2>
+          <p class="sc-body">Empieza por el taller de un día; los otros se abren después.</p>
+        </div>
+        <article class="item"><div data-sc-tilt="6"><img src="assets/item-1.webp" alt=""></div><h3>Un sábado</h3><p>Tres horas, una taza.</p></article>
+        <article class="item"><div data-sc-tilt="6"><img src="assets/item-2.webp" alt=""></div><h3>Un mes</h3><p>Cuatro sesiones, un juego de platos.</p></article>
+        <article class="item"><div data-sc-tilt="6"><img src="assets/item-3.webp" alt=""></div><h3>Taller libre</h3><p>Tu lugar en el torno cuando quieras.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="join" data-sc-act="pin" data-sc-span="1.15" data-sc-drift="#0b0a09">
+    <div data-sc-stage class="close" data-sc-spotlight>
+      <div class="close__inner">
+        <h2 class="sc-display sc-display--lg" data-sc-cue="0.06" data-sc-kinetic="lines">Guarda tu lugar del sábado.</h2>
+        <form class="registro" action="https://example.com/gracias" data-sc-cue="0.06" data-sc-rise="0">
+          <label for="f-nombre">Nombre</label>
+          <input id="f-nombre" name="nombre" autocomplete="given-name" required>
+          <label for="f-correo">Correo</label>
+          <input id="f-correo" name="email" type="email" autocomplete="email" required>
+          <button class="cta" type="submit">Reservar lugar</button>
+        </form>
+      </div>
+      <footer class="foot"><span>Faro Cerámica</span><span>© <span id="anio">2026</span></span></footer>
+    </div>
+  </section>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>
+  ScrollCraft.mount(document.body);
+  document.getElementById('anio').textContent = String(new Date().getFullYear());
+  document.documentElement.dataset.scriptPropio = 'si';
+  // the kind of code a student pastes in: it waits for events that, in AI Studio,
+  // already happened by the time it runs
+  document.addEventListener('DOMContentLoaded', function () { document.documentElement.dataset.domListo = 'si'; });
+  window.addEventListener('load', function () { document.body.dataset.cargada = 'si'; });
+</script>
+<script type="module">
+  document.documentElement.classList.add('js-modulo');
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "extraKnownMarketplaces": {
+    "nateherk": {
+      "source": { "source": "github", "repo": "nateherkai/scroll-craft" },
+      "autoUpdate": true
+    },
+    "highlevel-studio": {
+      "source": { "source": "github", "repo": "oswaldoaviles/hls-ai-studio" },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "nateherk-design@nateherk": true,
+    "hls-ai-studio@highlevel-studio": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "hls-ai-studio",
+  "description": "Migra a GoHighLevel AI Studio los sitios hechos con scroll-craft: adapta la página a la plantilla del proyecto, la prueba y entrega los mensajes para el chat de AI Studio, las imágenes en grupos de 5, una guía en español y la verificación final.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Oswaldo Avilés · HighLevel Studio"
+  },
+  "license": "MIT",
+  "keywords": ["gohighlevel", "ai-studio", "scroll-craft", "migracion", "landing"]
+}

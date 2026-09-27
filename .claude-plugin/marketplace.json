@@ -1,0 +1,16 @@
+{
+  "name": "highlevel-studio",
+  "owner": {
+    "name": "Oswaldo Avilés · HighLevel Studio"
+  },
+  "metadata": {
+    "description": "Herramientas de HighLevel Studio para alumnos: llevar sitios hechos con Claude a GoHighLevel AI Studio."
+  },
+  "plugins": [
+    {
+      "name": "hls-ai-studio",
+      "source": "./",
+      "description": "Migra a AI Studio los sitios hechos con scroll-craft, con mensajes listos para su chat y verificación final."
+    }
+  ]
+}
