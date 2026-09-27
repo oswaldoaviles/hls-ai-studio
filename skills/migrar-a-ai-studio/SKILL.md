@@ -50,18 +50,16 @@ this skill»). Los scripts están en `<skill>/scripts/`.
    nuevo, no le pida nada al chat y lo descargue: **Code → Download Codebase**, o
    **Project Settings → Download Codebase**. El kit se prueba sobre esa plantilla, así
    que ninguna otra sirve: la plantilla cambia entre versiones.
-3. **La identidad del formulario**, si la página tiene uno. Propón y confirma en una
-   sola pregunta:
-   - un nombre para el CRM con **la marca y la oferta**, p. ej. «Faro Cerámica · Reserva
-     taller sábado»;
-   - el `formId` es el mismo en minúsculas (`faro_reserva_sabado`); la fuente es igual al
-     nombre y el medio igual al `formId`;
-   - el ID de Google Tag Manager y el dominio final, si usa GTM.
+3. **El form ID**, si la página tiene formulario. Hazle al alumno una sola pregunta y
+   no propongas nombres:
 
-   Los nombres son **evergreen**: nunca «landing», «nueva», «v2», fechas ni la plataforma.
-   Si el alumno rehace la página, el formulario sigue siendo el mismo, y sus workflows y
-   reportes no se rompen. Un nombre propio por oferta separa estos leads de los de otras
-   ofertas en Contactos y en los disparadores de workflows.
+   > ¿Quieres darle un form ID específico a tu formulario? Si no, se llamará `registro`.
+
+   - Si da uno, úsalo tal cual con `--form-id`. Si no, no pases nada: el ID genérico es
+     `registro`.
+   - El mismo ID se usa como nombre en el CRM, fuente del contacto y medio.
+   - Nada de «landing», «nueva», versiones ni fechas: el ID debe servir aunque rehaga la
+     página.
 
 ### 2. El espacio de trabajo
 
@@ -83,10 +81,7 @@ Todos los comandos que siguen corren **dentro** del espacio de trabajo.
 ### 3. Convertir
 
 ```bash
-node <skill>/scripts/convertir-html.mjs "<build>" --plantilla "<zip en blanco>" \
-  --nombre "Faro Cerámica" \
-  --form-nombre "…" --form-id … --form-fuente "…" --form-medio … \
-  --gtm GTM-XXXXXXX --dominio midominio.com
+node <skill>/scripts/convertir-html.mjs "<build>" --plantilla "<zip en blanco>" [--form-id <id>]
 ```
 
 Qué hace:
@@ -217,7 +212,7 @@ Para un formulario dentro de un diálogo usa `--abrir "<selector del botón>"` y
   que corren.
 - **Dominio:** recomienda un subdominio. Se conecta en la publicación del proyecto, con
   el registro DNS que indique AI Studio; luego se marca como URL principal y se vuelve a
-  publicar. Si usa GTM, que el dominio sea el mismo que se pasó en `--dominio`.
+  publicar.
 
 ## Si el sitio no es HTML
 
@@ -251,7 +246,7 @@ del flujo es igual.
   "mapaImagenes": "src/components/hls/image-urls.ts",
   "formulario": {
     "existe": true,
-    "nombre": "…", "formId": "…", "source": "…", "mediumId": "…",
+    "nombre": "registro", "formId": "registro", "source": "registro", "mediumId": "registro",
     "costura": "src/components/hls/lead.ts",
     "firma": "sendLeadToCrm(name, email)",
     "descripcion": "Dónde está el formulario y qué hace ya (para el mensaje de conectar).",

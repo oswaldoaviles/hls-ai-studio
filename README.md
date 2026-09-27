@@ -77,8 +77,8 @@ Abre la carpeta «Mis sitios» en Claude Code y pide lo que quieras:
 Al migrar, Claude:
 
 1. revisa que tengas todo;
-2. te pregunta cómo quieres que se llame tu formulario en el CRM y si usas Google Tag
-   Manager;
+2. te pregunta si quieres darle un form ID específico a tu formulario (si no, se llama
+   `registro`);
 3. convierte y prueba tu página;
 4. te entrega la carpeta `kit/` con la guía `PASOS.md`.
 

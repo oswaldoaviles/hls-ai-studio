@@ -111,7 +111,7 @@ const mensajeFormulario = (n, total) => `Mensaje ${String(n).padStart(2, '0')} d
 Conecta a mi CRM el formulario de esta página, con tu integración de formularios de AI Studio (Connect forms to my CRM).
 
 - ${F.descripcion || `El formulario está en el HTML de la página (\`src/components/pagina/html-NN.ts\`, marcado con \`data-ai-studio-form\`) y su envío lo maneja \`src/components/pagina/formulario.ts\`.`}${F.formularios?.[0]?.campos?.length ? ` Campos: ${camposCrm(F.formularios[0].campos)}.` : ''}
-- Nombre del formulario en el CRM: «${F.nombre}». Usa estos valores: FORM_ID \`${F.formId}\`, CONTACT_SOURCE «${F.source}», MEDIUM_ID \`${F.mediumId}\`.
+- ${F.nombre === F.formId && F.source === F.formId && F.mediumId === F.formId ? `Usa \`${F.formId}\` como FORM_ID, CONTACT_SOURCE, MEDIUM_ID y nombre del formulario en el CRM.` : `Nombre del formulario en el CRM: «${F.nombre}». Usa estos valores: FORM_ID \`${F.formId}\`, CONTACT_SOURCE «${F.source}», MEDIUM_ID \`${F.mediumId}\`.`}
 - Implementa el envío SOLO dentro de la función \`${firmaForm}\` de \`${costuraForm}\`, usando tu \`postTrackingEvent\` de \`@/lib/tracking\`. Si \`postTrackingEvent\` devuelve una promesa, regrésala.
 - En ese mismo archivo deja exportados \`LEAD_FORM_ID\` y \`LEAD_SOURCE\` con los valores de tu FORM_ID y CONTACT_SOURCE.
 - NO modifiques ningún otro archivo de la página. No agregues eventos de \`dataLayer\`, toasts, \`window.open\` ni redirecciones: la página ya valida el formulario, manda el evento a GTM y lleva al visitante a su destino.

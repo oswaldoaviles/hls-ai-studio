@@ -8,8 +8,8 @@
 //
 //   cd <workspace>                     (made by doctor.mjs --preparar)
 //   node <skill>/scripts/convertir-html.mjs <build> --plantilla <blank-project.zip>
-//        [--html index.html] [--nombre "Mi sitio"] [--gtm GTM-XXXX --dominio midominio.com]
-//        [--form-nombre "..."] [--form-id ...] [--form-fuente "..."] [--form-medio ...]
+//        [--form-id <id>] [--html index.html] [--nombre "Mi sitio"]
+//        [--gtm GTM-XXXX --dominio midominio.com]
 //
 // Writes archivos/ (the files, at their paths in the project) and manifiesto.json
 // (their order, the images to upload, the form, warnings) in the workspace.
@@ -291,7 +291,6 @@ if (imagenes.some((i) => i.tipo === 'video')) aviso('La página usa video. Falta
 
 // ---- the form's identity in the CRM ---------------------------------------------
 const nombre = a.nombre || titulo.split(/\s[·|—–-]\s/)[0].trim() || 'Mi sitio'
-const slug = nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'sitio'
 const campos = formularios.map((f) => ({
   destino: attr(f, 'action') || '',
   campos: todos(f, (n) => ['input', 'select', 'textarea'].includes(n.tagName))
@@ -303,14 +302,15 @@ const campos = formularios.map((f) => ({
       requerido: attr(n, 'required') !== undefined,
     })),
 }))
-// named after the brand and the offer, never after a page, a platform or a version,
-// so the identity outlives any redesign; the source and the medium follow the name and the id
+// one generic, evergreen ID unless the student gives one: it is also the form's name in
+// the CRM, the contact's source and the medium
+const formId = typeof a['form-id'] === 'string' && a['form-id'].trim() ? a['form-id'].trim() : 'registro'
 const formulario = {
   existe: formularios.length > 0,
-  nombre: a['form-nombre'] || `${nombre} · Registro`,
-  formId: a['form-id'] || `${slug}_registro`,
-  source: a['form-fuente'] || a['form-nombre'] || `${nombre} · Registro`,
-  mediumId: a['form-medio'] || a['form-id'] || `${slug}_registro`,
+  nombre: formId,
+  formId,
+  source: formId,
+  mediumId: formId,
   formularios: campos,
 }
 
