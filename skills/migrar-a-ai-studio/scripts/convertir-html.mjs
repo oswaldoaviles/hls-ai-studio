@@ -303,12 +303,14 @@ const campos = formularios.map((f) => ({
       requerido: attr(n, 'required') !== undefined,
     })),
 }))
+// named after the brand and the offer, never after a page, a platform or a version,
+// so the identity outlives any redesign; the source and the medium follow the name and the id
 const formulario = {
   existe: formularios.length > 0,
-  nombre: a['form-nombre'] || `${nombre} · Registro (landing)`,
+  nombre: a['form-nombre'] || `${nombre} · Registro`,
   formId: a['form-id'] || `${slug}_registro`,
-  source: a['form-fuente'] || `${nombre} · Landing en AI Studio`,
-  mediumId: a['form-medio'] || `${slug}_landing`,
+  source: a['form-fuente'] || a['form-nombre'] || `${nombre} · Registro`,
+  mediumId: a['form-medio'] || a['form-id'] || `${slug}_registro`,
   formularios: campos,
 }
 

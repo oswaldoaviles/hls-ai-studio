@@ -52,13 +52,16 @@ this skill»). Los scripts están en `<skill>/scripts/`.
    que ninguna otra sirve: la plantilla cambia entre versiones.
 3. **La identidad del formulario**, si la página tiene uno. Propón y confirma en una
    sola pregunta:
-   - un nombre descriptivo para el CRM, con página y oferta (p. ej. «Faro Cerámica ·
-     Reserva taller sábado (landing)»);
-   - el `formId`, la fuente y el medio;
+   - un nombre para el CRM con **la marca y la oferta**, p. ej. «Faro Cerámica · Reserva
+     taller sábado»;
+   - el `formId` es el mismo en minúsculas (`faro_reserva_sabado`); la fuente es igual al
+     nombre y el medio igual al `formId`;
    - el ID de Google Tag Manager y el dominio final, si usa GTM.
 
-   Un nombre propio separa estos leads de los de otras páginas, en Contactos y en los
-   disparadores de workflows.
+   Los nombres son **evergreen**: nunca «landing», «nueva», «v2», fechas ni la plataforma.
+   Si el alumno rehace la página, el formulario sigue siendo el mismo, y sus workflows y
+   reportes no se rompen. Un nombre propio por oferta separa estos leads de los de otras
+   ofertas en Contactos y en los disparadores de workflows.
 
 ### 2. El espacio de trabajo
 

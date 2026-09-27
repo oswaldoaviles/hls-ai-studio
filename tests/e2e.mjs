@@ -149,7 +149,7 @@ async function zipSimulado(nombre, alterar = () => {}) {
   fs.writeFileSync(mapa, fs.readFileSync(mapa, 'utf8').replace(/"([^"]+)": "",/g, (_m, k) => `"${k}": "http://localhost:4839/${k}",`))
   fs.writeFileSync(
     path.join(raiz, 'src/lib/tracking.ts'),
-    'export const FORM_ID = "faro_ceramica_registro";\nexport const CONTACT_SOURCE = "Faro Cerámica · Landing en AI Studio";\nexport function postTrackingEvent(data: Record<string, unknown>): void {\n  void data;\n}\n',
+    'export const FORM_ID = "faro_ceramica_registro";\nexport const CONTACT_SOURCE = "Faro Cerámica · Registro";\nexport function postTrackingEvent(data: Record<string, unknown>): void {\n  void data;\n}\n',
   )
   fs.writeFileSync(
     path.join(raiz, 'src/components/pagina/lead.ts'),
