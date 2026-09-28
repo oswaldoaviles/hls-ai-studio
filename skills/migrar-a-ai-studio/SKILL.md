@@ -210,7 +210,8 @@ Para un formulario dentro de un diálogo usa `--abrir "<selector del botón>"` y
 
 ### 8. Dominio y SEO final
 
-1. **Dominio:** recomienda un subdominio. Se conecta en la publicación del proyecto, con el
+1. **Dominio:** el dominio principal del alumno (`sunegocio.com`), no un subdominio: es su
+   sitio web. Se conecta en la publicación del proyecto, con el
    registro DNS que indique AI Studio; luego se marca como URL principal y se vuelve a
    publicar. Desde ese momento, la URL `…vibepreview.app` redirige al dominio.
 2. **Si ese dominio ya tenía otro sitio,** sus direcciones viejas dan 404 al moverlo, y

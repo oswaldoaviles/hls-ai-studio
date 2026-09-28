@@ -105,7 +105,7 @@ solo, en segundo plano. A lo mucho te pide escribir `/reload-plugins`.
   contacto llegue a **Contactos** y a **Sites › Forms › Submissions › External Forms**.
 - **Workflows:** los que dependan del formulario necesitan el formulario nuevo en su
   disparador («AI Studio Form Submitted» o «External Tracking Event»).
-- **Dominio:** conéctalo en la publicación del proyecto (te recomendamos un subdominio) y
+- **Dominio:** conecta tu dominio principal en la publicación del proyecto y
   vuelve a publicar.
 
 ## Límites

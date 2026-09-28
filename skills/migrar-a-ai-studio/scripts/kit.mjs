@@ -237,7 +237,7 @@ ${F.existe ? `
 - **Workflows:** los que deban dispararse con este formulario necesitan tenerlo en su
   disparador («AI Studio Form Submitted» o «External Tracking Event»). Haz otro lead de
   prueba y confirma que corren.` : ''}
-- **Dominio:** conéctalo en la publicación del proyecto (recomendado: un subdominio), crea
+- **Dominio:** conecta tu dominio principal en la publicación del proyecto, crea
   el registro DNS que te indique AI Studio, márcalo como URL principal y vuelve a publicar.
 - **SEO final:** con el dominio ya conectado, pídele a Claude «haz el SEO final de mi
   sitio». Te da los mensajes para AI Studio con tu dominio: la URL canónica, los datos
