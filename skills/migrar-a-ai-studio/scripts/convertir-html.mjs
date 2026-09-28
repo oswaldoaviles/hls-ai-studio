@@ -8,8 +8,10 @@
 //
 //   cd <workspace>                     (made by doctor.mjs --preparar)
 //   node <skill>/scripts/convertir-html.mjs <build> --plantilla <blank-project.zip>
-//        [--form-id <id>] [--html index.html] [--nombre "Mi sitio"]
-//        [--gtm GTM-XXXX --dominio midominio.com]
+//        [--form-id <id>] [--dominio midominio.com] [--html index.html] [--nombre "Mi sitio"]
+//        [--gtm GTM-XXXX]
+//   --dominio adds the SEO that needs the final address: canonical URL, og:url,
+//   structured data, robots.txt with the sitemap, and sitemap.xml (the "SEO final").
 //
 // Writes archivos/ (the files, at their paths in the project) and manifiesto.json
 // (their order, the images to upload, the form, warnings) in the workspace.
@@ -304,7 +306,18 @@ const campos = formularios.map((f) => ({
 }))
 // one generic, evergreen ID unless the student gives one: it is also the form's name in
 // the CRM, the contact's source and the medium
-const formId = typeof a['form-id'] === 'string' && a['form-id'].trim() ? a['form-id'].trim() : 'registro'
+const anterior = (() => {
+  try {
+    return JSON.parse(leer(path.join(ESPACIO, 'manifiesto.json')))
+  } catch {
+    return null
+  }
+})()
+// a new run (the SEO final, say) keeps the ID the student chose the first time
+const formId =
+  typeof a['form-id'] === 'string' && a['form-id'].trim()
+    ? a['form-id'].trim()
+    : anterior?.formulario?.formId || 'registro'
 const formulario = {
   existe: formularios.length > 0,
   nombre: formId,
@@ -374,8 +387,39 @@ const dominioRe = dominio ? dominio.replace(/\./g, '\\.') : null
 const gtmSnippet = gtm
   ? `(function (w, d, s, l, i) {\n${dominioRe ? `  if (!/(^|\\.)${dominioRe}$/.test(location.hostname)) return;\n` : ''}  w[l] = w[l] || [];\n  w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });\n  var f = d.getElementsByTagName(s)[0], j = d.createElement(s), dl = l != "dataLayer" ? "&l=" + l : "";\n  j.async = true;\n  j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;\n  f.parentNode.insertBefore(j, f);\n})(window, document, "script", "dataLayer", ${JSON.stringify(gtm)});`
   : null
+// ---- SEO ----------------------------------------------------------------------------------
+// The template's root declares author «AI Studio», og:title «AI Studio App» and
+// «AI Studio Generated Project» as description: a page that does not declare its own
+// inherits them. Child meta wins by name/property, so the page declares all of them.
+const tiene = (clave) => metas.some((m) => (m.name || m.property) === clave)
+if (!descripcion) aviso('La página no tiene <meta name="description">: usé el título. Escribe una descripción (70 a 160 caracteres) en el index.html del build y vuelve a convertir.')
+const descripcionSeo = descripcion || titulo
+const url = dominio ? `https://${dominio}/` : null
+const metasSeo = [
+  ...(!descripcion ? [{ name: 'description', content: descripcionSeo }] : []),
+  ...(!tiene('author') ? [{ name: 'author', content: nombre }] : []),
+  ...(!tiene('og:title') ? [{ property: 'og:title', content: titulo }] : []),
+  ...(!tiene('og:description') ? [{ property: 'og:description', content: descripcionSeo }] : []),
+  ...(!tiene('og:site_name') ? [{ property: 'og:site_name', content: nombre }] : []),
+  ...(url && !tiene('og:url') ? [{ property: 'og:url', content: url }] : []),
+  ...(!tiene('twitter:title') ? [{ name: 'twitter:title', content: titulo }] : []),
+  ...(!tiene('twitter:description') ? [{ name: 'twitter:description', content: descripcionSeo }] : []),
+]
+// with a domain: the canonical address and structured data (unless the page brings its own)
+const traeJsonLd = scriptsHead.some((x) => /ld\+json/i.test(x.tipo || ''))
+const jsonLd =
+  url && !traeJsonLd
+    ? JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          { '@type': 'WebSite', '@id': `${url}#sitio`, name: nombre, url, inLanguage: lang, description: descripcionSeo },
+          { '@type': 'Organization', '@id': `${url}#organizacion`, name: nombre, url },
+        ],
+      }).replace(/</g, '\\u003c')
+    : null
 const headScripts = [
   ...(gtmSnippet ? [`{ children: ${literal(gtmSnippet)} }`] : []),
+  ...(jsonLd ? [`{ type: "application/ld+json", children: ${JSON.stringify(jsonLd)} }`] : []),
   ...scriptsHead.map((s) => {
     const extra = `${s.tipo ? `, type: ${JSON.stringify(s.tipo)}` : ''}${s.async ? ', async: true' : ''}${s.defer ? ', defer: true' : ''}`
     return s.src ? `{ src: ${JSON.stringify(s.src)}${extra} }` : `{ children: ${literal(tokenizar(s.codigo))}${extra} }`
@@ -384,7 +428,7 @@ const headScripts = [
 const q = JSON.stringify
 poner(
   'src/components/pagina/head.ts',
-  `// El <head> de la página original: título, descripción, redes, fuentes, la hoja\n// del motor de scroll y la de la página (sus partes están en css-NN.ts).\n${motorCss ? 'import scrollcraftCss from "@/lib/scrollcraft.css?url";\n' : ''}import { ${icono?.asset || usaAssetEnMeta ? 'asset, ' : ''}resolver } from "./assets";\nimport { CSS } from "./contenido";\n\nexport const TITULO = ${q(titulo)};\nexport const DESCRIPCION = ${q(descripcion)};\n// La hoja propia de la página, en el <head> después de la del motor, como en el original.\nconst estilos = resolver(CSS.join(""));\n// El Tailwind de la plantilla reinicia todos los elementos (su «preflight», en @layer base):\n// quita márgenes de p y figure, viñetas de listas, negritas de h3… La página original no lo\n// tenía, así que en esta ruta esa capa se deshace.\nconst SIN_PREFLIGHT =\n  "@layer base { html, html *, html ::before, html ::after, html ::backdrop, html ::marker, html ::placeholder, html ::file-selector-button { all: revert-layer; } }";\n\nexport const paginaHead = () => ({\n  meta: [\n    { title: TITULO },\n${metas.map((m) => `    { ${m.property ? `property: ${q(m.property)}` : `name: ${q(m.name)}`}, content: ${contenidoMeta(m.content)} },`).join('\n')}\n  ],\n  links: [\n${links.map((l) => `    { rel: ${q(l.rel)}, href: ${q(l.href)}${l.crossOrigin ? ', crossOrigin: "anonymous" as const' : ''} },`).join('\n')}\n${motorCss ? '    { rel: "stylesheet", href: scrollcraftCss },\n' : ''}${icono ? `    { rel: "icon", href: ${icono.asset ? `asset(${q(icono.asset)})` : q(icono.href)} },\n` : ''}  ],\n  styles: [{ children: SIN_PREFLIGHT }, { children: estilos }],${headScripts.length ? `\n  scripts: [\n${headScripts.map((s) => `    ${s},`).join('\n')}\n  ],` : ''}\n});\n`,
+  `// El <head> de la página original: título, descripción, redes, fuentes, la hoja\n// del motor de scroll y la de la página (sus partes están en css-NN.ts).\n${motorCss ? 'import scrollcraftCss from "@/lib/scrollcraft.css?url";\n' : ''}import { ${icono?.asset || usaAssetEnMeta ? 'asset, ' : ''}resolver } from "./assets";\nimport { CSS } from "./contenido";\n\nexport const TITULO = ${q(titulo)};\nexport const DESCRIPCION = ${q(descripcion)};\n// La hoja propia de la página, en el <head> después de la del motor, como en el original.\nconst estilos = resolver(CSS.join(""));\n// El Tailwind de la plantilla reinicia todos los elementos (su «preflight», en @layer base):\n// quita márgenes de p y figure, viñetas de listas, negritas de h3… La página original no lo\n// tenía, así que en esta ruta esa capa se deshace.\nconst SIN_PREFLIGHT =\n  "@layer base { html, html *, html ::before, html ::after, html ::backdrop, html ::marker, html ::placeholder, html ::file-selector-button { all: revert-layer; } }";\n\nexport const paginaHead = () => ({\n  meta: [\n    { title: TITULO },\n${[...metas, ...metasSeo].map((m) => `    { ${m.property ? `property: ${q(m.property)}` : `name: ${q(m.name)}`}, content: ${contenidoMeta(m.content)} },`).join('\n')}\n  ],\n  links: [\n${url ? `    { rel: "canonical", href: ${q(url)} },\n` : ''}${links.map((l) => `    { rel: ${q(l.rel)}, href: ${q(l.href)}${l.crossOrigin ? ', crossOrigin: "anonymous" as const' : ''} },`).join('\n')}\n${motorCss ? '    { rel: "stylesheet", href: scrollcraftCss },\n' : ''}${icono ? `    { rel: "icon", href: ${icono.asset ? `asset(${q(icono.asset)})` : q(icono.href)} },\n` : ''}  ],\n  styles: [{ children: SIN_PREFLIGHT }, { children: estilos }],${headScripts.length ? `\n  scripts: [\n${headScripts.map((s) => `    ${s},`).join('\n')}\n  ],` : ''}\n});\n`,
 )
 function contenidoMeta(c) {
   // og:image and friends pointing to assets/ resolve to the uploaded URL
@@ -392,11 +436,17 @@ function contenidoMeta(c) {
   return m ? `asset(${q(m[1])})` : q(c)
 }
 
+const zip = await abrirZip(path.resolve(a.plantilla))
+if (url) {
+  // the template's own robots.txt, plus where the sitemap is
+  const robots = (zip.leer('public/robots.txt') || 'User-agent: *\nAllow: /\n').replace(/\s*$/, '\n')
+  poner('public/robots.txt', /^\s*sitemap:/im.test(robots) ? robots : `${robots}\nSitemap: ${url}sitemap.xml\n`)
+  poner('public/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${url}</loc>\n  </url>\n</urlset>\n`)
+}
 poner('src/components/pagina/Pagina.tsx', plantilla('src/components/pagina/Pagina.tsx'))
 poner('src/routes/index.tsx', plantilla('src/routes/index.tsx'))
 
 // the template's own root, with only the language and the safe area changed
-const zip = await abrirZip(path.resolve(a.plantilla))
 let root = zip.leer('src/routes/__root.tsx')
 if (root) {
   const antes = root
@@ -418,6 +468,7 @@ const manifiesto = {
   imagenes,
   formulario,
   gtm: gtm ? { id: gtm, dominio } : null,
+  seo: { dominio, url },
   avisos,
 }
 escribir(path.join(ESPACIO, 'manifiesto.json'), JSON.stringify(manifiesto, null, 2) + '\n')

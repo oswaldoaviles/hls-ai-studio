@@ -12,7 +12,7 @@
 // identity, assets); works without it too.
 import fs from 'node:fs'
 import path from 'node:path'
-import { ESPACIO, args, cargar, escribir } from './lib.mjs'
+import { ESPACIO, args, auditarHtml, auditarRastreo, cargar, escribir } from './lib.mjs'
 
 const a = args()
 const URL_PAGINA = a._[0]
@@ -51,6 +51,15 @@ process.exit(malos.length ? 1 : 0)
 async function probar(vista, opciones) {
   console.log(`\n${vista}`)
   const ctx = await navegador.newContext(opciones)
+  // how long the main content takes to appear (Largest Contentful Paint), as Google measures it
+  await ctx.addInitScript(() => {
+    window.__lcp = 0
+    try {
+      new PerformanceObserver((l) => {
+        for (const e of l.getEntries()) window.__lcp = e.startTime
+      }).observe({ type: 'largest-contentful-paint', buffered: true })
+    } catch {}
+  })
   const p = await ctx.newPage()
   const errores = []
   const fallidos = []
@@ -124,6 +133,7 @@ async function probar(vista, opciones) {
   ok('es la página migrada (no la plantilla en blanco)', !estado.marcador && (!M?.meta?.titulo || estado.titulo === M.meta.titulo), `título: ${estado.titulo}`)
   ok('llegaron los estilos del motor y de la página', estado.hojaMotor && estado.estilosPagina, `fondo ${estado.fondo}`)
   ok('fuentes cargadas', estado.fuentes.length > 0 || !M, estado.fuentes.join(', ') || 'solo fuentes del sistema')
+  if (vista === 'teléfono') await revisarSeo(p)
 
   // walk the page so every lazy image, video and act is exercised
   const alto = await p.evaluate(() => document.documentElement.scrollHeight)
@@ -220,6 +230,31 @@ async function enviar(p, vista, envios, destinos) {
     const llego = destinos.includes(info.destino) || p.url() === info.destino
     ok('después del envío va a su destino, en la misma pestaña', llego, `${Date.now() - t0} ms · ${destinos[0] || p.url()}`)
   } else if (destinos.length) nota(`Después del envío fue a ${destinos[0]} (${Date.now() - t0} ms)`)
+}
+
+// SEO on the published site: the server's HTML, robots.txt and sitemap.xml. On the final
+// domain it expects the SEO final (canonical, structured data, sitemap); on the preview, notes.
+async function revisarSeo(p) {
+  const final = new URL(p.url())
+  if (final.hostname !== HOST) nota(`La dirección redirige a ${final.origin}: ese es el dominio del sitio`)
+  const enDominio = !/\.vibepreview\.app$/i.test(final.hostname)
+  const url = enDominio ? `${final.origin}/` : null
+  let html = ''
+  try {
+    html = await (await fetch(final.href)).text()
+  } catch (e) {
+    ok('SEO: leer el HTML del servidor', false, e.message)
+    return
+  }
+  const seo = [...auditarHtml(html, { url }), ...(await auditarRastreo(final.origin, { url }))]
+  for (const x of seo) {
+    if (x.nivel === 'nota') nota(`SEO: ${x.texto}`)
+    else ok(`SEO: ${x.texto}`, x.nivel === 'ok')
+  }
+  if (enDominio && seo.some((x) => x.nivel === 'error')) nota('Para corregirlo: «haz el SEO final de mi sitio» (SKILL.md, paso 8)')
+  if (!enDominio) nota('SEO: la página aún está en la vista previa de AI Studio. Conecta el dominio y haz el SEO final.')
+  const lcp = await p.evaluate(() => window.__lcp || 0)
+  if (lcp) nota(`Velocidad: el contenido principal aparece a los ${(lcp / 1000).toFixed(1)} s en teléfono (Google recomienda menos de 2.5 s)`)
 }
 
 function leerEvento(x) {

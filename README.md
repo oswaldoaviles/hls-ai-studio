@@ -89,6 +89,11 @@ Cuando termines, descarga el ZIP de tu proyecto de AI Studio y pásaselo a Claud
 con la URL de la vista previa: te dice si quedó exacto y te da las correcciones que
 falten.
 
+Con tu dominio conectado, pide **«haz el SEO final de mi sitio»**. Claude agrega la URL
+canónica, los datos estructurados, el `sitemap.xml` y el `robots.txt`, y lo revisa en tu
+dominio. Desde el principio, tu página lleva sus propios títulos y descripciones para
+Google y redes, nunca los genéricos de AI Studio.
+
 ## Actualizaciones
 
 Cuando este plugin (o scroll-craft) publica una versión nueva, tu Claude Code la descarga

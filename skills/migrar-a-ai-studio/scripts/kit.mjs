@@ -45,7 +45,8 @@ const M = JSON.parse(leer(MANIFIESTO))
 const F = M.formulario || { existe: false }
 const costuraForm = F.costura || 'src/components/pagina/lead.ts'
 const firmaForm = F.firma || 'sendLeadToCrm(campos)'
-const fence = (f) => (f.endsWith('.css') ? 'css' : f.endsWith('.tsx') ? 'tsx' : f.endsWith('.ts') ? 'ts' : 'js')
+const fence = (f) =>
+  f.endsWith('.css') ? 'css' : f.endsWith('.tsx') ? 'tsx' : f.endsWith('.ts') ? 'ts' : f.endsWith('.xml') ? 'xml' : f.endsWith('.txt') ? 'text' : 'js'
 const reformateable = (f) => /\.(css|m?js)$/.test(f) // AI Studio reformats these with its Prettier
 const base = (f) => path.basename(f)
 
@@ -238,6 +239,12 @@ ${F.existe ? `
   prueba y confirma que corren.` : ''}
 - **Dominio:** conéctalo en la publicación del proyecto (recomendado: un subdominio), crea
   el registro DNS que te indique AI Studio, márcalo como URL principal y vuelve a publicar.
+- **SEO final:** con el dominio ya conectado, pídele a Claude «haz el SEO final de mi
+  sitio». Te da los mensajes para AI Studio con tu dominio: la URL canónica, los datos
+  estructurados, el \`sitemap.xml\` y el \`robots.txt\`. Pégalos, vuelve a publicar y Claude lo
+  revisa en tu dominio.
+- **Google Search Console:** da de alta tu dominio en https://search.google.com/search-console
+  y envía tu sitemap (\`https://tu-dominio/sitemap.xml\`).
 
 ## Qué NO hacer mientras migras
 

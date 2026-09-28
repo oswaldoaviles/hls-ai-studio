@@ -159,6 +159,92 @@ export function partir(texto, archivo, limite = LIMITE_MENSAJE - 1200) {
   return partes
 }
 
+// ---- SEO ------------------------------------------------------------------------------------
+// What the blank template's root declares; a page that does not declare its own inherits it.
+const GENERICOS = ['AI Studio', 'AI Studio App', 'AI Studio Generated Project']
+const sinEntidades = (t) =>
+  t.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+
+/** SEO of a page as a crawler first gets it: the server's HTML, before any script runs.
+    `url` is the page's final address (its domain), when it has one. Returns
+    [{ nivel: 'error' | 'nota' | 'ok', texto }]. */
+export function auditarHtml(html, { url = null } = {}) {
+  const r = []
+  const add = (nivel, texto) => r.push({ nivel, texto })
+  const metas = {}
+  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const clave = (m[0].match(/\b(?:name|property)="([^"]+)"/i) || [])[1]
+    const valor = (m[0].match(/\bcontent="([^"]*)"/i) || [])[1]
+    if (clave && valor !== undefined) metas[clave.toLowerCase()] = sinEntidades(valor)
+  }
+  const titulo = sinEntidades(((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '').trim())
+  const heredados = Object.entries(metas).filter(([k, v]) => /^(author|description|og:|twitter:)/.test(k) && GENERICOS.includes(v))
+  if (GENERICOS.includes(titulo)) heredados.push(['title', titulo])
+  if (heredados.length) add('error', `Hereda metadatos genéricos de la plantilla de AI Studio: ${heredados.map(([k, v]) => `${k}="${v}"`).join(', ')}`)
+  else add('ok', 'Sin metadatos genéricos de la plantilla')
+
+  if (!titulo) add('error', 'Sin <title>')
+  else if (titulo.length < 30 || titulo.length > 60) add('nota', `El título mide ${titulo.length} caracteres (lo ideal: 30 a 60): «${titulo}»`)
+  const desc = metas['description']
+  if (!desc) add('error', 'Sin meta description')
+  else if (desc.length < 70 || desc.length > 160) add('nota', `La descripción mide ${desc.length} caracteres (lo ideal: 70 a 160)`)
+  if (!/<html\b[^>]*\blang="[^"]+"/i.test(html)) add('error', 'El <html> no declara su idioma (lang)')
+  if (/noindex/i.test(metas['robots'] || '')) add('error', 'La página pide no ser indexada (meta robots noindex)')
+  if (!metas['og:title'] || !metas['og:description']) add('nota', 'Faltan og:title u og:description (vista previa en redes)')
+  if (!metas['og:image']) add('nota', 'Sin og:image: AI Studio pondrá una captura como imagen para redes')
+
+  const h1 = (html.match(/<h1\b/gi) || []).length
+  if (h1 !== 1) add('nota', h1 ? `Tiene ${h1} encabezados H1 (lo ideal: uno)` : 'Sin encabezado H1')
+  const sinAlt = [...html.matchAll(/<img\b[^>]*>/gi)].filter((m) => !/\balt=/i.test(m[0])).length
+  if (sinAlt) add('nota', `${sinAlt} imagen(es) sin atributo alt (usa alt="" si es decorativa)`)
+
+  const canonical = (html.match(/<link\b[^>]*\brel="canonical"[^>]*>/i) || [''])[0].match(/\bhref="([^"]+)"/i)?.[1]
+  if (url) {
+    if (canonical === url) add('ok', `URL canónica: ${url}`)
+    else add('error', canonical ? `La URL canónica es ${canonical}, no ${url}` : `Sin URL canónica (debe ser ${url})`)
+    if (metas['og:url'] !== url) add('nota', `og:url ${metas['og:url'] ? `es ${metas['og:url']}` : 'falta'} (debe ser ${url})`)
+  } else if (!canonical) add('nota', 'Sin URL canónica: se agrega en el SEO final, con el dominio')
+
+  const bloques = [...html.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)]
+  const invalidos = bloques.filter((b) => {
+    try {
+      JSON.parse(sinEntidades(b[1]))
+      return false
+    } catch {
+      return true
+    }
+  })
+  if (invalidos.length) add('error', `${invalidos.length} bloque(s) de datos estructurados (JSON-LD) con JSON inválido`)
+  else if (bloques.length) add('ok', `${bloques.length} bloque(s) de datos estructurados válidos`)
+  else add('nota', 'Sin datos estructurados (JSON-LD): se agregan en el SEO final, con el dominio')
+  return r
+}
+
+/** robots.txt and sitemap.xml of a site, fetched from `base` (its origin). */
+export async function auditarRastreo(base, { url = null } = {}) {
+  const r = []
+  const add = (nivel, texto) => r.push({ nivel, texto })
+  const traer = async (ruta) => {
+    try {
+      const res = await fetch(base + ruta, { redirect: 'follow' })
+      return { status: res.status, texto: res.ok ? await res.text() : '' }
+    } catch (e) {
+      return { status: 0, texto: '', error: e.message }
+    }
+  }
+  const robots = await traer('/robots.txt')
+  const todos = robots.texto.split(/\n(?=\s*user-agent:)/i).find((b) => /user-agent:\s*\*/i.test(b)) || ''
+  if (robots.status !== 200) add('nota', `Sin robots.txt (${robots.status || robots.error})`)
+  else if (/^\s*disallow:\s*\/\s*$/im.test(todos)) add('error', 'robots.txt bloquea todo el sitio (Disallow: /)')
+  else if (/^\s*sitemap:/im.test(robots.texto)) add('ok', 'robots.txt permite indexar y anuncia el sitemap')
+  else add(url ? 'error' : 'nota', 'robots.txt no anuncia el sitemap (línea Sitemap:)')
+  const sitemap = await traer('/sitemap.xml')
+  if (sitemap.status === 200 && url && sitemap.texto.includes(`<loc>${url}</loc>`)) add('ok', 'sitemap.xml lista la página')
+  else if (sitemap.status === 200 && !url) add('ok', 'Hay sitemap.xml')
+  else add(url ? 'error' : 'nota', sitemap.status === 200 ? `sitemap.xml no lista ${url}` : `Sin sitemap.xml (${sitemap.status || sitemap.error})`)
+  return r
+}
+
 /** A template literal holding raw text (HTML, CSS, JS): escape what would end it. */
 export const literal = (t) => '`' + t.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`'
 

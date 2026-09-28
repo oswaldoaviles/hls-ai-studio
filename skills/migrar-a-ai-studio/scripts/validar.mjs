@@ -18,7 +18,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
-import { ESPACIO, abrirZip, args, cargar, escribir, formatear, leer, prettierDe, sha } from './lib.mjs'
+import { ESPACIO, abrirZip, args, auditarHtml, auditarRastreo, cargar, escribir, formatear, leer, prettierDe, sha } from './lib.mjs'
 
 const a = args()
 const MANIFIESTO = path.join(ESPACIO, 'manifiesto.json')
@@ -149,6 +149,18 @@ try {
   ok('La página llega armada desde el servidor (buscadores y primera carga)', /data-sc-act/.test(ssr) && ssr.includes(`<title>${escaparHtml(M.meta?.titulo || '')}</title>`), `${(ssr.length / 1024).toFixed(0)} KB de HTML`)
   const veces = ssr.split('all: revert-layer').length - 1
   if (veces) ok('Los estilos de la página van una sola vez en el HTML', veces === 1, `${veces} veces`)
+  // SEO as a crawler first gets the page (the server's HTML), plus robots.txt and
+  // sitemap.xml once there is a domain; notes do not block the kit, errors do
+  const url = M.seo?.url || null
+  const seo = [...auditarHtml(ssr, { url }), ...(url ? await auditarRastreo(URL_AI.replace(/\/$/, ''), { url }) : [])]
+  for (const x of seo) {
+    if (x.nivel === 'nota') nota(`SEO: ${x.texto}`)
+    else ok(`SEO: ${x.texto}`, x.nivel === 'ok')
+  }
+  const pesados = (M.imagenes || [])
+    .map((i) => ({ i, kb: fs.statSync(i.archivo).size / 1024 }))
+    .filter(({ i, kb }) => (i.tipo === 'video' ? kb > 10240 : kb > 500))
+  if (pesados.length) nota(`Velocidad: archivos pesados, que conviene comprimir en el build: ${pesados.map(({ i, kb }) => `${i.clave} (${Math.round(kb)} KB)`).join(', ')}`)
   const { chromium } = await cargar('playwright-core')
   navegador = await chromium.launch({ channel: 'chrome', headless: true })
   const vistas = [

@@ -75,6 +75,12 @@ const { cargar, formatear, partir, prettierDe, abrirZip } = await import(path.jo
   const head = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/pagina/head.ts'), 'utf8')
   ok('JSON-LD conserva su type en el <head>', /type: "application\/ld\+json"/.test(head))
   ok('GTM en el <head>, limitado al dominio', head.includes('GTM-TEST123') && /faro.+example.+com.+location\.hostname/.test(head), head.match(/if \(!.*location\.hostname.*/)?.[0])
+  ok('la página declara sus propios metadatos (nada genérico de la plantilla)', /name: "author"/.test(head) && /property: "og:description"/.test(head) && /name: "twitter:title"/.test(head))
+  ok('SEO final: URL canónica y og:url con el dominio', head.includes('{ rel: "canonical", href: "https://faro.example.com/" }') && head.includes('property: "og:url", content: "https://faro.example.com/"'))
+  const robots = fs.readFileSync(path.join(ESPACIO, 'archivos/public/robots.txt'), 'utf8')
+  const sitemap = fs.readFileSync(path.join(ESPACIO, 'archivos/public/sitemap.xml'), 'utf8')
+  ok('SEO final: robots.txt anuncia el sitemap y sitemap.xml lista la página', /Sitemap: https:\/\/faro\.example\.com\/sitemap\.xml/.test(robots) && sitemap.includes('<loc>https://faro.example.com/</loc>'))
+  ok('respeta los datos estructurados que trae la página (no los duplica)', !head.includes('@graph'))
   const root = fs.readFileSync(path.join(ESPACIO, 'archivos/src/routes/__root.tsx'), 'utf8')
   ok('root de la plantilla con lang="es" y viewport-fit=cover', root.includes('<html lang="es"') && root.includes('viewport-fit=cover'))
 }
@@ -107,7 +113,7 @@ const KIT = path.join(ESPACIO, 'kit')
   for (const f of numerados) {
     const t = fs.readFileSync(path.join(KIT, 'prompts', f), 'utf8')
     const titulo = t.match(/^Mensaje \d+ de \d+ · (\S+)(?: \(parte (\d+) de (\d+)\))?/)
-    if (!titulo || !titulo[1].startsWith('src/')) continue
+    if (!titulo || !/^(src|public)\//.test(titulo[1])) continue
     const cuerpo = t.match(/^(`{3,})[a-z]*\n([\s\S]*?)\n\1\n?$/m)
     if (!cuerpo) {
       ok(`bloque de código en ${f}`, false)
@@ -193,6 +199,24 @@ async function zipSimulado(nombre, alterar = () => {}) {
   ok('--comparar: escribe un mensaje de corrección por archivo', correcciones.join() === '01-html-01.ts.md,02-head.ts.md', correcciones.join(', '))
 }
 servidor.close()
+
+// 6. a page without its own structured data gets WebSite + Organization, valid JSON
+{
+  const dir = path.join(ESPACIO, 'sitio-sin-jsonld')
+  fs.rmSync(dir, { recursive: true, force: true })
+  fs.cpSync(path.join(ESPACIO, 'sitio'), dir, { recursive: true })
+  const html = path.join(dir, 'index.html')
+  fs.writeFileSync(html, fs.readFileSync(html, 'utf8').replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>\n?/, ''))
+  const r = await correr('convertir-html.mjs', ['sitio-sin-jsonld', '--plantilla', PLANTILLA, '--dominio', 'faro.example.com'])
+  const head = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/pagina/head.ts'), 'utf8')
+  const ld = head.match(/type: "application\/ld\+json", children: ("(?:[^"\\]|\\.)*")/)
+  let datos = null
+  try {
+    datos = ld && JSON.parse(JSON.parse(ld[1]))
+  } catch {}
+  const tipos = datos?.['@graph']?.map((x) => x['@type']).join(',')
+  ok('SEO final: sin datos estructurados propios, agrega WebSite + Organization válidos', r.codigo === 0 && tipos === 'WebSite,Organization' && datos['@graph'][0].url === 'https://faro.example.com/', tipos || 'no se generaron')
+}
 
 console.log(`\n${fallas.length ? `${fallas.length} FALLA(S): ${fallas.join(' · ')}` : 'Todo bien.'}\nEspacio de trabajo: ${ESPACIO}`)
 process.exit(fallas.length ? 1 : 0)

@@ -64,6 +64,16 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 | Las respuestas llegan a Contactos, a *Sites › Forms › Submissions › External Forms* y a los disparadores de workflow «AI Studio Form Submitted» / «External Tracking Event», que se pueden filtrar por proyecto, formulario, ruta y dominio. | Un solo ID para el formulario, que también es su nombre en el CRM, la fuente y el medio: el genérico `registro`, o el que el alumno pida. **Evergreen**: sin «landing», «nueva», versiones ni fechas. Revisar que los workflows del alumno incluyan el formulario en su filtro. |
 | `window.open` después de una espera lo bloquea Safari (solo deja pasar popups dentro de ~1 s del toque). | Redirigir en la misma pestaña con `location.assign()` después del envío. |
 
+## SEO
+
+| Regla | Remedio |
+|---|---|
+| El root de la plantilla declara `author` «AI Studio», `og:title` «AI Studio App» y «AI Studio Generated Project» como descripción. Una página que no declara los suyos los hereda, y Google y las redes los muestran. | La ruta declara siempre sus propios metadatos: autor, descripción, `og:*` y `twitter:*`. Una etiqueta de la ruta gana a la del root con el mismo `name` o `property`. |
+| El `public/robots.txt` de la plantilla permite todo, pero no anuncia un sitemap. No trae `sitemap.xml` ni URL canónica. | El SEO final, con el dominio, agrega la URL canónica, `og:url`, datos estructurados, `robots.txt` con `Sitemap:` y `sitemap.xml`. |
+| Cuando el dominio queda como URL principal, `…vibepreview.app` redirige a él con un 301, así que no hay contenido duplicado. | `probar-preview.mjs` sigue la redirección y revisa el SEO en el dominio. |
+| Al mover un dominio que ya tenía otro proyecto, sus rutas viejas dan 404. En HighLevel Studio, `/nueva-version` y otras dos quedaron así. | Preguntar las rutas viejas y redirigirlas a `/` con un 301. |
+| La página llega armada desde el servidor (SSR de TanStack Start), con todo el texto en el HTML. | Bien para buscadores: no hay que hacer nada. `validar.mjs` lo comprueba. |
+
 ## Probar sin crear contactos
 
 - En la vista previa (`…vibepreview.app`), el formulario conectado **sí envía** al CRM:

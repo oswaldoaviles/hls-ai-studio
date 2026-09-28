@@ -200,19 +200,56 @@ envío de prueba:
 - muestra el `formId`, el medio y los campos que llevaba;
 - revisa el evento de GTM y la redirección.
 
+También revisa el SEO tal como lo recibe Google, con el HTML del servidor, el
+`robots.txt` y el `sitemap.xml`, y mide cuánto tarda en aparecer el contenido
+principal en teléfono. Si la vista previa ya redirige a un dominio, lo dice: ese es el
+dominio del sitio.
+
 Para un formulario dentro de un diálogo usa `--abrir "<selector del botón>"` y
 `--form "<selector>"`.
 
-### 8. Antes de salir a producción (con el alumno)
+### 8. Dominio y SEO final
 
-- **Lead real:** que se registre en la vista previa con su correo y lo vea en
-  **Contactos** y en **Sites › Forms › Submissions › External Forms**.
+1. **Dominio:** recomienda un subdominio. Se conecta en la publicación del proyecto, con el
+   registro DNS que indique AI Studio; luego se marca como URL principal y se vuelve a
+   publicar. Desde ese momento, la URL `…vibepreview.app` redirige al dominio.
+2. **Si ese dominio ya tenía otro sitio,** sus direcciones viejas dan 404 al moverlo, y
+   Google las tenía indexadas. Pregunta cuáles eran (o revisa su sitemap viejo) y
+   redirígelas a `/`, con una ruta que haga `throw redirect({ to: "/", statusCode: 301 })`
+   en su `beforeLoad`.
+3. **SEO final**, cuando el alumno diga «haz el SEO final de mi sitio» o `probar-preview`
+   marque errores de SEO en el dominio. Reconvierte con el dominio. Su form ID se conserva
+   solo, desde el manifiesto anterior:
+
+   ```bash
+   node <skill>/scripts/convertir-html.mjs "<build>" --plantilla "<zip en blanco>" --dominio <dominio>
+   node <skill>/scripts/validar.mjs && node <skill>/scripts/kit.mjs
+   node <skill>/scripts/kit.mjs --comparar "<ZIP actual de AI Studio>"
+   ```
+
+   Lo que agrega el dominio:
+   - la URL canónica y `og:url`;
+   - datos estructurados `WebSite` + `Organization`, salvo que la página traiga los suyos;
+   - `public/robots.txt` con su línea `Sitemap:`;
+   - `public/sitemap.xml`.
+
+   `--comparar` deja en `kit/correcciones/` justo los mensajes que cambian: `head.ts`,
+   `robots.txt` y `sitemap.xml`. Dáselos, que vuelva a publicar, y confirma con
+   `probar-preview.mjs "https://<dominio>/"`: todo el SEO debe salir ✓.
+4. **Google Search Console** (lo hace el alumno): dar de alta el dominio en
+   https://search.google.com/search-console y enviar `https://<dominio>/sitemap.xml`.
+
+Los metadatos propios van siempre, con o sin dominio: autor, `og:title`, `og:description`,
+`og:site_name` y los de Twitter. Sin ellos, la página heredaría los genéricos de la
+plantilla («AI Studio», «AI Studio Generated Project»).
+
+### 9. Antes de salir a producción (con el alumno)
+
+- **Lead real:** que se registre con su correo y lo vea en **Contactos** y en
+  **Sites › Forms › Submissions › External Forms**.
 - **Workflows:** los que dependen del formulario necesitan el nuevo en su disparador
   («AI Studio Form Submitted» o «External Tracking Event»). Que haga otro lead y confirme
   que corren.
-- **Dominio:** recomienda un subdominio. Se conecta en la publicación del proyecto, con
-  el registro DNS que indique AI Studio; luego se marca como URL principal y se vuelve a
-  publicar.
 
 ## Si el sitio no es HTML
 
