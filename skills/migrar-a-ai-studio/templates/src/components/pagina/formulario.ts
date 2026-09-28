@@ -1,8 +1,9 @@
-// Los formularios de la página (marcados data-ai-studio-form en la conversión): al
-// enviar, corre la validación del navegador, el contacto va al CRM por lead.ts y se
-// manda el evento `lead` a GTM; luego el visitante va al destino del formulario en la
-// misma pestaña (Safari bloquea una ventana que se abre con retraso), o el formulario
-// queda con data-estado="enviado" si no tiene destino.
+// Los formularios del sitio (marcados data-ai-studio-form en la conversión, cada uno con
+// su data-form-id): al enviar, corre la validación del navegador, el contacto va al CRM
+// por lead.ts con el form ID de ese formulario y se manda el evento `lead` a GTM; luego el
+// visitante va al destino del formulario en la misma pestaña (Safari bloquea una ventana
+// que se abre con retraso), o el formulario queda con data-estado="enviado" si no tiene
+// destino.
 import { LEAD_FORM_ID, LEAD_SOURCE, sendLeadToCrm } from "./lead";
 
 const esperar = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -13,13 +14,17 @@ function empujar(evento: Record<string, unknown>) {
   w.dataLayer.push(evento);
 }
 
+// Una conexión anterior al CRM puede aceptar solo los campos: el form ID va como segundo
+// argumento, que esa versión ignora.
+const enviarAlCrm = sendLeadToCrm as (campos: Record<string, string>, formId?: string) => unknown;
+
 /** Espera a que salgan GTM y el envío al CRM: mínimo 1 s, nunca más de 1.8 s. */
-function entregar(campos: Record<string, string>): Promise<void> {
+function entregar(campos: Record<string, string>, formId: string): Promise<void> {
   const gtm = new Promise<void>((resolve) =>
     empujar({
       event: "lead",
-      formId: LEAD_FORM_ID,
-      source: LEAD_SOURCE,
+      formId,
+      source: formId === LEAD_FORM_ID ? LEAD_SOURCE : formId,
       email: campos["email"] ?? "",
       eventCallback: () => resolve(),
       eventTimeout: 1200,
@@ -27,7 +32,7 @@ function entregar(campos: Record<string, string>): Promise<void> {
   );
   let crm: Promise<unknown> = Promise.resolve();
   try {
-    crm = Promise.resolve(sendLeadToCrm(campos)).catch(() => undefined);
+    crm = Promise.resolve(enviarAlCrm(campos, formId)).catch(() => undefined);
   } catch {
     // un error del CRM nunca debe dejar al visitante atorado en la página
   }
@@ -49,7 +54,7 @@ export function instalarFormularios(): () => void {
     const accion = form.getAttribute("action") || "";
     const destino = form.dataset["destino"] || (/^https?:\/\//.test(accion) ? accion : "");
     form.dataset["estado"] = "enviando";
-    void entregar(campos).then(() => {
+    void entregar(campos, form.dataset["formId"] || LEAD_FORM_ID).then(() => {
       if (destino) {
         location.assign(destino);
         return;

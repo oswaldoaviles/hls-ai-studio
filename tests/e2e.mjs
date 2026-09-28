@@ -35,9 +35,9 @@ const ok = (nombre, bien, detalle = '') => {
   if (!bien) fallas.push(nombre)
   console.log(`${bien ? 'PASS' : 'FAIL'}  ${nombre}${detalle ? `  ${detalle}` : ''}`)
 }
-function correr(script, args, { mostrar = false } = {}) {
+function correr(script, args, { mostrar = false, espacio = ESPACIO } = {}) {
   return new Promise((resolve) => {
-    const p = spawn(process.execPath, [path.join(SCRIPTS, script), ...args], { cwd: ESPACIO, env: { ...process.env, HLS_ESPACIO: ESPACIO } })
+    const p = spawn(process.execPath, [path.join(SCRIPTS, script), ...args], { cwd: espacio, env: { ...process.env, HLS_ESPACIO: espacio } })
     let salida = ''
     p.stdout.on('data', (d) => {
       salida += d
@@ -70,8 +70,19 @@ const { cargar, formatear, partir, prettierDe, abrirZip } = await import(path.jo
   const r = await correr('convertir-html.mjs', ['sitio', '--plantilla', PLANTILLA, '--gtm', 'GTM-TEST123', '--dominio', 'faro.example.com'])
   ok('convertir-html.mjs', r.codigo === 0, r.codigo === 0 ? '' : r.salida.slice(-800))
   const m = JSON.parse(fs.readFileSync(path.join(ESPACIO, 'manifiesto.json'), 'utf8'))
-  ok('11 assets detectados (imágenes, videos y og:image)', m.imagenes.length === 11, m.imagenes.map((i) => i.clave).join(', '))
+  ok('las 4 páginas del sitio, cada una con su dirección', (m.paginas || []).map((x) => x.ruta).join() === '/,/contacto,/nosotros,/servicios/torno', (m.paginas || []).map((x) => x.ruta).join(', '))
+  ok('12 assets detectados en todas las páginas (imágenes, videos y og:image)', m.imagenes.length === 12, m.imagenes.map((i) => i.clave).join(', '))
   ok('formulario detectado con sus campos', m.formulario.existe && m.formulario.formularios[0].campos.map((c) => c.name).join() === 'nombre,email')
+  ok('cada formulario con su form ID genérico', m.formulario.formularios.map((f) => f.formId).join() === 'registro,contacto', m.formulario.formularios.map((f) => f.formId).join(', '))
+  const htmlHome = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/pagina/html-01.ts'), 'utf8')
+  const htmlServicio = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/paginas/servicios-torno/html-01.ts'), 'utf8')
+  ok('los links entre páginas se vuelven direcciones (también desde una subcarpeta)', ['/nosotros', '/servicios/torno', '/contacto'].every((r) => htmlHome.includes(`href="${r}"`)) && htmlServicio.includes('href="/"') && !/\.html"/.test(htmlHome + htmlServicio))
+  const compartido = path.join(ESPACIO, 'archivos/src/components/pagina/compartido-sitio-01.ts')
+  const cssHome = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/pagina/css-01.ts'), 'utf8')
+  ok('sitio.css va una sola vez, compartido por las páginas', fs.existsSync(compartido) && fs.readFileSync(compartido, 'utf8').includes('--sc-canvas') && !cssHome.includes('--sc-canvas'))
+  const headServicio = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/paginas/servicios-torno/head.ts'), 'utf8')
+  ok('cada página con su propio SEO (canónica y og:image de su dirección)', headServicio.includes('href: "https://faro.example.com/servicios/torno"') && headServicio.includes('asset("torno.webp")'))
+  ok('una ruta por página, al final del kit', fs.existsSync(path.join(ESPACIO, 'archivos/src/routes/servicios/torno.tsx')) && fs.existsSync(path.join(ESPACIO, 'archivos/src/routes/contacto.tsx')))
   const head = fs.readFileSync(path.join(ESPACIO, 'archivos/src/components/pagina/head.ts'), 'utf8')
   ok('JSON-LD conserva su type en el <head>', /type: "application\/ld\+json"/.test(head))
   ok('GTM en el <head>, limitado al dominio', head.includes('GTM-TEST123') && /faro.+example.+com.+location\.hostname/.test(head), head.match(/if \(!.*location\.hostname.*/)?.[0])
@@ -79,7 +90,7 @@ const { cargar, formatear, partir, prettierDe, abrirZip } = await import(path.jo
   ok('SEO final: URL canónica y og:url con el dominio', head.includes('{ rel: "canonical", href: "https://faro.example.com/" }') && head.includes('property: "og:url", content: "https://faro.example.com/"'))
   const robots = fs.readFileSync(path.join(ESPACIO, 'archivos/public/robots.txt'), 'utf8')
   const sitemap = fs.readFileSync(path.join(ESPACIO, 'archivos/public/sitemap.xml'), 'utf8')
-  ok('SEO final: robots.txt anuncia el sitemap y sitemap.xml lista la página', /Sitemap: https:\/\/faro\.example\.com\/sitemap\.xml/.test(robots) && sitemap.includes('<loc>https://faro.example.com/</loc>'))
+  ok('SEO final: robots.txt anuncia el sitemap y sitemap.xml lista todas las páginas', /Sitemap: https:\/\/faro\.example\.com\/sitemap\.xml/.test(robots) && ['/', '/contacto', '/nosotros', '/servicios/torno'].every((r) => sitemap.includes(`<loc>https://faro.example.com${r}</loc>`)))
   ok('respeta los datos estructurados que trae la página (no los duplica)', !head.includes('@graph'))
   const root = fs.readFileSync(path.join(ESPACIO, 'archivos/src/routes/__root.tsx'), 'utf8')
   ok('root de la plantilla con lang="es" y viewport-fit=cover', root.includes('<html lang="es"') && root.includes('viewport-fit=cover'))
@@ -89,9 +100,9 @@ const { cargar, formatear, partir, prettierDe, abrirZip } = await import(path.jo
 {
   const r = await correr('validar.mjs', [], { mostrar: false })
   const resumen = r.salida.split('\n').filter((l) => /^(✓|✗)|pruebas bien/.test(l))
-  ok('validar.mjs (plantilla real, build, tsc, prettier, Chrome, formulario, paridad)', r.codigo === 0, r.codigo === 0 ? resumen.at(-1) : `\n${r.salida.slice(-2500)}`)
+  ok('validar.mjs (plantilla real, build, tsc, prettier, Chrome, formularios, paridad de cada página)', r.codigo === 0, r.codigo === 0 ? resumen.at(-1) : `\n${r.salida.slice(-2500)}`)
   const informe = JSON.parse(fs.readFileSync(path.join(ESPACIO, '.validar/informe.json'), 'utf8'))
-  ok('la comparación visual quedó guardada', fs.existsSync(path.join(ESPACIO, '.validar/comparacion-escritorio.jpg')) && fs.existsSync(path.join(ESPACIO, '.validar/comparacion-telefono.jpg')), `${informe.resultados.length} pruebas en informe.json`)
+  ok('la comparación visual de cada página quedó guardada', ['comparacion-escritorio.jpg', 'comparacion-telefono.jpg', 'comparacion-contacto-escritorio.jpg', 'comparacion-servicios-torno-telefono.jpg'].every((f) => fs.existsSync(path.join(ESPACIO, '.validar', f))), `${informe.resultados.length} pruebas en informe.json`)
 }
 
 // 4. the kit and its limits
@@ -132,7 +143,7 @@ const KIT = path.join(ESPACIO, 'kit')
 // 5. a simulated AI Studio ZIP: files reformatted by its Prettier, assets with URLs,
 //    the form connected with postTrackingEvent
 const servidor = await servirAssets(path.join(ESPACIO, 'sitio', 'assets'), 4839)
-async function zipSimulado(nombre, alterar = () => {}) {
+async function zipSimulado(nombre, alterar = () => {}, { kit = KIT, espacio = ESPACIO } = {}) {
   const AdmZip = await cargar('adm-zip', ESPACIO)
   const plantilla = await abrirZip(PLANTILLA)
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hls-zip-'))
@@ -145,7 +156,7 @@ async function zipSimulado(nombre, alterar = () => {}) {
       fs.mkdirSync(path.dirname(path.join(raiz, r)), { recursive: true })
       fs.copyFileSync(path.join(d, r), path.join(raiz, r))
     })
-  copiar(path.join(KIT, 'archivos'))
+  copiar(path.join(kit, 'archivos'))
   const config = prettierDe(plantilla)
   for (const f of ['src/lib/scrollcraft.js', 'src/lib/scrollcraft.css']) {
     const t = fs.readFileSync(path.join(raiz, f), 'utf8')
@@ -164,7 +175,7 @@ async function zipSimulado(nombre, alterar = () => {}) {
   await alterar(raiz)
   const zip = new AdmZip()
   zip.addLocalFolder(dir)
-  const archivo = path.join(ESPACIO, nombre)
+  const archivo = path.join(espacio, nombre)
   zip.writeZip(archivo)
   fs.rmSync(dir, { recursive: true, force: true })
   return archivo
@@ -173,7 +184,7 @@ async function zipSimulado(nombre, alterar = () => {}) {
   const limpio = await zipSimulado('simulado-limpio.zip')
   const r = await correr('kit.mjs', ['--comparar', limpio])
   ok('--comparar: ZIP limpio de AI Studio (reformateado, con URLs y formulario conectado)', r.codigo === 0, r.codigo === 0 ? r.salida.trim().split('\n')[0] : `\n${r.salida}`)
-  ok('--comparar: cada URL sirve exactamente su archivo', /cada URL sirve exactamente su archivo \(11\)/.test(r.salida))
+  ok('--comparar: cada URL sirve exactamente su archivo', /cada URL sirve exactamente su archivo \(12\)/.test(r.salida))
   ok('--comparar: detecta el formulario conectado', /usa el postTrackingEvent/.test(r.salida))
 }
 {
@@ -198,9 +209,70 @@ async function zipSimulado(nombre, alterar = () => {}) {
   const correcciones = fs.existsSync(path.join(KIT, 'correcciones')) ? fs.readdirSync(path.join(KIT, 'correcciones')) : []
   ok('--comparar: escribe un mensaje de corrección por archivo', correcciones.join() === '01-html-01.ts.md,02-head.ts.md', correcciones.join(', '))
 }
+
+// 6. adding pages later: the student migrated only the home first, now the whole site;
+//    the update kit carries only what is new or changed, and applying it gives the site
+{
+  const B = path.join(ESPACIO, 'incremental')
+  fs.rmSync(B, { recursive: true, force: true })
+  fs.mkdirSync(B, { recursive: true })
+  fs.symlinkSync(path.join(ESPACIO, 'node_modules'), path.join(B, 'node_modules'))
+  const KB = path.join(B, 'kit')
+  let r = await correr('convertir-html.mjs', [path.join(ESPACIO, 'sitio'), '--plantilla', PLANTILLA, '--html', 'index.html'], { espacio: B })
+  r = r.codigo === 0 ? await correr('kit.mjs', [], { espacio: B }) : r
+  ok('primera migración: solo el home', r.codigo === 0, r.codigo === 0 ? '' : r.salida.slice(-600))
+  const v1 = await zipSimulado('v1.zip', () => {}, { kit: KB, espacio: B })
+  r = await correr('convertir-html.mjs', [path.join(ESPACIO, 'sitio'), '--plantilla', PLANTILLA], { espacio: B })
+  r = r.codigo === 0 ? await correr('kit.mjs', ['--desde', v1], { espacio: B }) : r
+  ok('kit de actualización (--desde el ZIP de AI Studio)', r.codigo === 0, r.salida.trim().split('\n').at(-1))
+  ok('detecta las páginas nuevas', /páginas nuevas: \/contacto, \/nosotros, \/servicios\/torno/.test(r.salida))
+  const prompts = fs.readdirSync(path.join(KB, 'prompts')).filter((f) => /^\d\d-/.test(f)).sort()
+  const leer = (f) => fs.readFileSync(path.join(KB, 'prompts', f), 'utf8')
+  ok('no reenvía lo que AI Studio ya tiene (el motor)', !prompts.some((f) => /scrollcraft\.(js|css)/.test(f)), prompts.filter((f) => /scrollcraft/.test(f)).join(', '))
+  const mapa = prompts.find((f) => /image-urls/.test(f))
+  ok('el mapa de imágenes conserva las URLs que ya tenía y agrega la nueva', !!mapa && leer(mapa).includes('"01-poster.webp": "http://localhost:4839/01-poster.webp"') && leer(mapa).includes('"torno.webp": ""'))
+  ok('solo sube el asset nuevo', fs.readdirSync(path.join(KB, 'imagenes')).flatMap((g) => fs.readdirSync(path.join(KB, 'imagenes', g))).join() === 'torno.webp')
+  ok('pide actualizar la conexión: cada formulario con su form ID', prompts.some((f) => /actualizar-formularios/.test(f)))
+  ok('las reglas son de actualización', /actualizar el sitio/.test(leer('00-reglas.md')))
+  const ruta = prompts.find((f) => /torno\.tsx/.test(f))
+  ok('el mensaje de cada ruta nueva prohíbe borrarla', !!ruta && /no lo borres/.test(leer(ruta)))
+  // what AI Studio ends up with: v1 plus the update's files, the new asset's URL, and
+  // the connection updated to take each form's ID
+  const aplicado = await (async () => {
+    const AdmZip = await cargar('adm-zip', ESPACIO)
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hls-v2-'))
+    const raiz = path.join(dir, 'project-x-prueba')
+    ;(await abrirZip(v1)).extraer(raiz)
+    const piezas = {}
+    for (const f of prompts) {
+      const t = leer(f)
+      const titulo = t.match(/^Mensaje \d+ de \d+ · (\S+)/)
+      const cuerpo = t.match(/^(`{3,})[a-z]*\n([\s\S]*?)\n\1\n?$/m)
+      if (titulo && cuerpo && /^(src|public)\//.test(titulo[1])) piezas[titulo[1]] = (piezas[titulo[1]] || '') + cuerpo[2] + '\n'
+    }
+    for (const [archivo, texto] of Object.entries(piezas)) {
+      fs.mkdirSync(path.dirname(path.join(raiz, archivo)), { recursive: true })
+      fs.writeFileSync(path.join(raiz, archivo), texto)
+    }
+    const m = path.join(raiz, 'src/components/pagina/image-urls.ts')
+    fs.writeFileSync(m, fs.readFileSync(m, 'utf8').replace('"torno.webp": ""', '"torno.webp": "http://localhost:4839/torno.webp"'))
+    fs.writeFileSync(
+      path.join(raiz, 'src/components/pagina/lead.ts'),
+      'import { CONTACT_SOURCE, FORM_ID, postTrackingEvent } from "@/lib/tracking";\n\nexport function sendLeadToCrm(campos: Record<string, string>, formId: string = FORM_ID): Promise<unknown> | void {\n  postTrackingEvent({ formId, formData: campos });\n}\n\nexport const LEAD_FORM_ID = FORM_ID;\nexport const LEAD_SOURCE = CONTACT_SOURCE;\n',
+    )
+    const zip = new AdmZip()
+    zip.addLocalFolder(dir)
+    const archivo = path.join(B, 'v2.zip')
+    zip.writeZip(archivo)
+    fs.rmSync(dir, { recursive: true, force: true })
+    return archivo
+  })()
+  r = await correr('kit.mjs', ['--comparar', aplicado], { espacio: B })
+  ok('con la actualización aplicada, el proyecto queda igual al sitio completo', r.codigo === 0, r.codigo === 0 ? r.salida.trim().split('\n')[0] : `\n${r.salida}`)
+}
 servidor.close()
 
-// 6. a page without its own structured data gets WebSite + Organization, valid JSON
+// 7. a page without its own structured data gets WebSite + Organization, valid JSON
 {
   const dir = path.join(ESPACIO, 'sitio-sin-jsonld')
   fs.rmSync(dir, { recursive: true, force: true })

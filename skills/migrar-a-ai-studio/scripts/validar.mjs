@@ -18,7 +18,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
-import { ESPACIO, abrirZip, args, auditarHtml, auditarRastreo, cargar, escribir, formatear, leer, prettierDe, sha } from './lib.mjs'
+import { ESPACIO, abrirZip, args, auditarHtml, auditarRastreo, cargar, escribir, formatear, leer, prettierDe, servir, sha } from './lib.mjs'
 
 const a = args()
 const MANIFIESTO = path.join(ESPACIO, 'manifiesto.json')
@@ -77,7 +77,7 @@ export function sendLeadToCrm(
 ): ReturnType<typeof sendLeadToCrmOriginal> {
   const w = window as unknown as { __leads?: unknown[] };
   const lista: unknown[] = args;
-  (w.__leads ??= []).push(lista.length === 1 ? lista[0] : lista);
+  (w.__leads ??= []).push(lista);
   return sendLeadToCrmOriginal(...args);
 }
 `,
@@ -140,22 +140,39 @@ dev.stderr.on('data', (d) => (logDev += d))
 const htmlOriginal = M.origen?.html
 const servidorOriginal = htmlOriginal && fs.existsSync(htmlOriginal) ? await servir(path.dirname(htmlOriginal), PUERTO + 1) : null
 const URL_AI = `http://localhost:${PUERTO}/`
-const URL_ORIGINAL = servidorOriginal && `http://localhost:${PUERTO + 1}/${path.basename(htmlOriginal)}`
+// every page of the site (a hand-written manifest, or an old one, has only the home)
+const PAGINAS = M.paginas?.length ? M.paginas : [{ id: 'inicio', ruta: '/', rel: htmlOriginal ? path.basename(htmlOriginal) : 'index.html', titulo: M.meta?.titulo }]
+const urlAi = (pg) => `http://localhost:${PUERTO}${pg.ruta}`
+const urlOriginal = (pg) => servidorOriginal && `http://localhost:${PUERTO + 1}/${pg.rel}`
+const urlFinal = (pg) => (M.seo?.url ? (pg.ruta === '/' ? M.seo.url : M.seo.url.replace(/\/$/, '') + pg.ruta) : null)
+const quien = (pg, vista) => (pg.ruta === '/' ? vista : `${vista} ${pg.ruta}`)
+const formsDe = (pg) => (M.paginas?.length ? (pg.formularios || []).length : pg.ruta === '/' && M.formulario?.existe ? 1 : 0)
 
 let navegador
 try {
   if (!(await esperarHttp(URL_AI, 120000))) throw new Error(`vite dev no respondió en ${URL_AI}\n${cola(logDev)}`)
-  const ssr = await (await fetch(URL_AI)).text()
-  ok('La página llega armada desde el servidor (buscadores y primera carga)', /data-sc-act/.test(ssr) && ssr.includes(`<title>${escaparHtml(M.meta?.titulo || '')}</title>`), `${(ssr.length / 1024).toFixed(0)} KB de HTML`)
-  const veces = ssr.split('all: revert-layer').length - 1
-  if (veces) ok('Los estilos de la página van una sola vez en el HTML', veces === 1, `${veces} veces`)
-  // SEO as a crawler first gets the page (the server's HTML), plus robots.txt and
-  // sitemap.xml once there is a domain; notes do not block the kit, errors do
+  // each page as a crawler first gets it (the server's HTML), its SEO, and once there is a
+  // domain robots.txt and a sitemap with every page; notes do not block the kit, errors do
+  for (const pg of PAGINAS) {
+    const ssr = await (await fetch(urlAi(pg))).text()
+    const donde = pg.ruta === '/' ? '' : ` (${pg.ruta})`
+    ok(`La página llega armada desde el servidor${donde}`, (ssr.includes('class="ai-pagina"') || /data-sc-act/.test(ssr)) && ssr.includes(`<title>${escaparHtml(pg.titulo || '')}</title>`), `${(ssr.length / 1024).toFixed(0)} KB de HTML`)
+    const veces = ssr.split('all: revert-layer').length - 1
+    if (veces) ok(`Los estilos de la página van una sola vez en el HTML${donde}`, veces === 1, `${veces} veces`)
+    for (const x of auditarHtml(ssr, { url: urlFinal(pg) })) {
+      if (x.nivel === 'nota') nota(`SEO${donde}: ${x.texto}`)
+      else ok(`SEO${donde}: ${x.texto}`, x.nivel === 'ok')
+    }
+  }
   const url = M.seo?.url || null
-  const seo = [...auditarHtml(ssr, { url }), ...(url ? await auditarRastreo(URL_AI.replace(/\/$/, ''), { url }) : [])]
-  for (const x of seo) {
-    if (x.nivel === 'nota') nota(`SEO: ${x.texto}`)
-    else ok(`SEO: ${x.texto}`, x.nivel === 'ok')
+  if (url) {
+    for (const x of await auditarRastreo(URL_AI.replace(/\/$/, ''), { url })) {
+      if (x.nivel === 'nota') nota(`SEO: ${x.texto}`)
+      else ok(`SEO: ${x.texto}`, x.nivel === 'ok')
+    }
+    const mapa = await (await fetch(URL_AI + 'sitemap.xml')).text()
+    const fuera = PAGINAS.map(urlFinal).filter((u) => !mapa.includes(`<loc>${u}</loc>`))
+    ok(`SEO: el sitemap lista las ${PAGINAS.length} página(s)`, fuera.length === 0, fuera.join(', '))
   }
   const pesados = (M.imagenes || [])
     .map((i) => ({ i, kb: fs.statSync(i.archivo).size / 1024 }))
@@ -168,9 +185,11 @@ try {
     ['telefono', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
   ]
   const pedidos = new Map() // asset -> worst status seen
-  for (const [vista, opciones] of vistas) {
-    await funcional(vista, opciones, pedidos)
-    if (URL_ORIGINAL) await comparar(vista, opciones)
+  for (const pg of PAGINAS) {
+    for (const [vista, opciones] of vistas) {
+      await funcional(pg, vista, opciones, pedidos)
+      if (urlOriginal(pg)) await comparar(pg, vista, opciones)
+    }
   }
   const assetsFallidos = [...pedidos].filter(([, s]) => s >= 400)
   ok('Cada archivo de assets/ que pidió la página respondió bien', assetsFallidos.length === 0, assetsFallidos.map(([k, s]) => `${k} (${s})`).join(', '))
@@ -211,7 +230,7 @@ if (a.shoot) {
 escribir(path.join(RAIZ, 'informe.json'), JSON.stringify({ fecha: new Date().toISOString(), resultados }, null, 2))
 const malos = resultados.filter((r) => !r.bien)
 console.log(`\n${resultados.length - malos.length}/${resultados.length} pruebas bien${malos.length ? ` · ${malos.length} por resolver antes de generar el kit` : ' · listo para generar el kit'}`)
-if (URL_ORIGINAL) console.log(`Comparación visual: ${path.join(RAIZ, 'comparacion-escritorio.jpg')} y comparacion-telefono.jpg`)
+if (servidorOriginal) console.log(`Comparación visual en ${RAIZ}: ${PAGINAS.map((pg) => (pg.ruta === '/' ? 'comparacion-escritorio.jpg, comparacion-telefono.jpg' : `comparacion-${pg.id}-*.jpg`)).join(', ')}`)
 process.exit(malos.length ? 1 : 0)
 
 // ---- the tests ---------------------------------------------------------------------------
@@ -234,7 +253,11 @@ async function contexto(opciones, extra = {}) {
 async function cargarPagina(p, url) {
   await p.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 })
   await p.waitForSelector('html.sc-ready', { timeout: 60000 })
+  // the fonts: every stylesheet parsed (Google Fonts included), then no face still loading;
+  // fonts.ready alone can resolve before a slow font stylesheet has even arrived
+  await p.waitForFunction(() => [...document.querySelectorAll('link[rel="stylesheet"]')].every((l) => l.sheet), null, { timeout: 20000 }).catch(() => {})
   await p.evaluate(() => document.fonts.ready)
+  await p.waitForFunction(() => document.fonts.status === 'loaded', null, { timeout: 15000 }).catch(() => {})
   await p.waitForTimeout(600)
 }
 
@@ -257,7 +280,7 @@ async function cargarImagenes(p) {
   })
 }
 
-async function funcional(vista, opciones, pedidos) {
+async function funcional(pg, vista, opciones, pedidos) {
   const { ctx, destinos, externos } = await contexto(opciones)
   const p = await ctx.newPage()
   const errores = []
@@ -281,8 +304,9 @@ async function funcional(vista, opciones, pedidos) {
     const u = new URL(r.url())
     if (u.hostname === 'localhost' && !/ERR_ABORTED/.test(r.failure()?.errorText || '')) fallidos.push(`${r.failure()?.errorText} ${u.pathname}`)
   })
-  await cargarPagina(p, URL_AI)
-  ok(`${vista}: el motor de scroll-craft arrancó (html.sc-ready)`, true)
+  await cargarPagina(p, urlAi(pg))
+  const v = quien(pg, vista)
+  ok(`${v}: el motor de scroll-craft arrancó (html.sc-ready)`, true)
   await recorrer(p)
   await cargarImagenes(p)
   const estado = await p.evaluate(() => ({
@@ -293,24 +317,25 @@ async function funcional(vista, opciones, pedidos) {
     lang: document.documentElement.lang,
     marcador: !!document.querySelector('[data-vibe-blank-page-placeholder]'),
   }))
-  ok(`${vista}: la página reemplazó a la de la plantilla`, !estado.marcador && estado.titulo === (M.meta?.titulo || estado.titulo), `título: ${estado.titulo}`)
-  if (M.meta?.lang) ok(`${vista}: idioma del documento (${M.meta.lang})`, estado.lang === M.meta.lang, estado.lang)
-  ok(`${vista}: no quedaron rutas de assets sin resolver`, estado.tokens.length === 0, estado.tokens.join(', '))
+  ok(`${v}: la página reemplazó a la de la plantilla`, !estado.marcador && estado.titulo === (pg.titulo || estado.titulo), `título: ${estado.titulo}`)
+  if (M.meta?.lang) ok(`${v}: idioma del documento (${M.meta.lang})`, estado.lang === M.meta.lang, estado.lang)
+  ok(`${v}: no quedaron rutas de assets sin resolver`, estado.tokens.length === 0, estado.tokens.join(', '))
   const rotas = estado.imagenes.filter((i) => !i.bien)
-  ok(`${vista}: las ${estado.imagenes.length} imágenes visibles cargan`, rotas.length === 0, rotas.map((i) => i.src).join('\n'))
-  ok(`${vista}: sin errores en la consola`, errores.length === 0, errores.slice(0, 6).join('\n'))
+  ok(`${v}: las ${estado.imagenes.length} imágenes visibles cargan`, rotas.length === 0, rotas.map((i) => i.src).join('\n'))
+  ok(`${v}: sin errores en la consola`, errores.length === 0, errores.slice(0, 6).join('\n'))
   if (bloqueados.size) nota(`Bloqueado en la prueba (sitios de terceros; revísalos en la URL publicada): ${[...bloqueados].join(', ')}`)
-  ok(`${vista}: sin peticiones fallidas`, fallidos.length === 0, fallidos.slice(0, 8).join('\n'))
+  ok(`${v}: sin peticiones fallidas`, fallidos.length === 0, fallidos.slice(0, 8).join('\n'))
 
-  if (M.gtm?.dominio) ok(`${vista}: Google Tag Manager no carga fuera de ${M.gtm.dominio}`, !externos.some((u) => /googletagmanager\.com/.test(u)))
-  if (M.formulario?.existe) await probarFormulario(p, vista, destinos)
+  if (M.gtm?.dominio) ok(`${v}: Google Tag Manager no carga fuera de ${M.gtm.dominio}`, !externos.some((u) => /googletagmanager\.com/.test(u)))
+  if (formsDe(pg)) await probarFormulario(p, v, destinos, pg)
   await ctx.close()
 }
 
-async function probarFormulario(p, vista, destinos) {
+async function probarFormulario(p, vista, destinos, pg) {
   const antes = p.url()
-  const selector = M.formulario.selector || 'form[data-ai-studio-form]'
-  if (M.formulario.abrir) {
+  const principal = pg.ruta === '/'
+  const selector = (principal && M.formulario.selector) || 'form[data-ai-studio-form]'
+  if (principal && M.formulario.abrir) {
     // a form inside a dialog: open it the way a visitor does
     await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
     await p.waitForTimeout(300)
@@ -341,40 +366,44 @@ async function probarFormulario(p, vista, destinos) {
     const invalidos = [...f.elements].filter((e) => e.willValidate && !e.checkValidity()).map((e) => `${e.name}: ${e.validationMessage}`)
     const destino = f.dataset.destino || (/^https?:\/\//.test(f.getAttribute('action') || '') ? f.getAttribute('action') : '')
     f.requestSubmit()
-    return { hay: true, invalidos, destino, nombres: [...new FormData(f).keys()] }
+    return { hay: true, invalidos, destino, nombres: [...new FormData(f).keys()], formId: f.dataset.formId || '' }
   }, selector)
+  const esperado = envio.formId || M.formulario.formId
   if (!envio.hay) {
     ok(`${vista}: el formulario está en la página`, false, `No encontré ${selector}`)
     return
   }
   const leads = await p
-    .waitForFunction(() => (window.__leads || []).length > 0, null, { timeout: 5000 })
+    .waitForFunction(() => (window.__leads || []).length > 0, null, { timeout: 10000 })
     .then(() => p.evaluate(() => window.__leads))
     .catch(() => [])
   if (grabadora) {
-    // one object of fields (converted pages) or plain arguments (a hand-made seam)
-    const porNombre = leads[0] && typeof leads[0] === 'object' && !Array.isArray(leads[0])
-    const campos = porNombre ? Object.keys(leads[0]) : []
-    const faltan = porNombre ? envio.nombres.filter((n) => !campos.includes(n)) : []
+    // (fields, form ID) on converted pages, plain arguments on a hand-made seam
+    const argumentos = Array.isArray(leads[0]) ? leads[0] : leads.length ? [leads[0]] : []
+    const objeto = argumentos[0] && typeof argumentos[0] === 'object' && !Array.isArray(argumentos[0]) ? argumentos[0] : null
+    const campos = objeto ? Object.keys(objeto) : []
+    const faltan = objeto ? envio.nombres.filter((n) => !campos.includes(n)) : []
+    const idRecibido = objeto && typeof argumentos[1] === 'string' ? argumentos[1] : null
     ok(
-      `${vista}: el formulario entrega sus campos a sendLeadToCrm (lo que AI Studio conecta al CRM)`,
-      leads.length === 1 && faltan.length === 0,
+      `${vista}: el formulario entrega sus campos${idRecibido ? ' y su form ID' : ''} a sendLeadToCrm (lo que AI Studio conecta al CRM)`,
+      leads.length === 1 && faltan.length === 0 && (!idRecibido || idRecibido === esperado),
       leads.length
-        ? porNombre
-          ? `campos: ${campos.join(', ')}${faltan.length ? ` · faltan: ${faltan.join(', ')}` : ''}`
-          : `argumentos: ${JSON.stringify(leads[0])}`
+        ? objeto
+          ? `campos: ${campos.join(', ')}${faltan.length ? ` · faltan: ${faltan.join(', ')}` : ''}${idRecibido ? ` · form ID: ${idRecibido}` : ''}`
+          : `argumentos: ${JSON.stringify(argumentos)}`
         : `no llegó${envio.invalidos.length ? ` (inválidos: ${envio.invalidos.join('; ')})` : ''}`,
     )
   }
   const lead = await p.evaluate(() => (window.dataLayer || []).find((e) => e && e.event === 'lead') || null).catch(() => null)
-  ok(`${vista}: evento «lead» para GTM, con el formId del CRM`, lead && lead.formId === M.formulario.formId, lead ? `formId: ${lead.formId}` : 'no se envió')
+  ok(`${vista}: evento «lead» para GTM, con el formId del CRM`, lead && lead.formId === esperado, lead ? `formId: ${lead.formId}` : 'no se envió')
   if (envio.destino) {
-    await p.waitForURL((u) => u.href !== antes, { timeout: 5000 }).catch(() => {})
+    await p.waitForURL((u) => u.href !== antes, { timeout: 12000 }).catch(() => {})
     ok(`${vista}: después del envío va a su destino en la misma pestaña`, destinos.includes(envio.destino) || p.url() === envio.destino, p.url())
   }
 }
 
-async function comparar(vista, opciones) {
+async function comparar(pg, vista, opciones) {
+  const pasos = pg.ruta === '/' ? 8 : 4
   // reduced motion makes both pages deterministic: the check is about layout and styles
   const medir = async (url) => {
     const { ctx } = await contexto(opciones, { reducedMotion: 'reduce' })
@@ -406,16 +435,27 @@ async function comparar(vista, opciones) {
     })
     const total = m.alto - (await p.evaluate(() => innerHeight))
     const fotos = []
-    for (let i = 0; i <= 8; i++) {
-      await p.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), Math.round((total * i) / 8))
+    for (let i = 0; i <= pasos; i++) {
+      await p.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), Math.round((total * i) / pasos))
       await p.waitForTimeout(450)
-      fotos.push(await p.screenshot({ type: 'png', scale: 'css' }))
+      // a slow frame on a busy machine gets a second try
+      let foto = null
+      for (let intento = 1; !foto; intento++) {
+        try {
+          foto = await p.screenshot({ type: 'png', scale: 'css', timeout: 45000 })
+        } catch (e) {
+          if (intento >= 2) throw e
+          await p.waitForTimeout(1500)
+        }
+      }
+      fotos.push(foto)
     }
     await ctx.close()
     return { m, fotos }
   }
-  const o = await medir(URL_ORIGINAL)
-  const n = await medir(URL_AI)
+  const o = await medir(urlOriginal(pg))
+  const n = await medir(urlAi(pg))
+  vista = quien(pg, vista)
   ok(`${vista}: mide lo mismo que la original`, Math.abs(o.m.alto - n.m.alto) <= 2, `original ${o.m.alto}px · AI Studio ${n.m.alto}px`)
   // element by element: the first differences say what to fix (a reset, a selector…)
   const difs = []
@@ -444,9 +484,10 @@ async function comparar(vista, opciones) {
   const pixeles = []
   for (let i = 0; i < o.fotos.length; i++) pixeles.push(await diferencia(hoja, o.fotos[i], n.fotos[i]))
   const peor = Math.max(...pixeles)
-  ok(`${vista}: se ve igual que la original en 9 puntos del scroll`, peor <= 0.01, `píxeles distintos por posición: ${pixeles.map((d) => `${(d * 100).toFixed(1)}%`).join(' · ')}`)
-  const jpg = await hojaComparacion(hoja, o.fotos, n.fotos, pixeles, vista)
-  fs.writeFileSync(path.join(RAIZ, `comparacion-${vista}.jpg`), jpg)
+  ok(`${vista}: se ve igual que la original en ${pasos + 1} puntos del scroll`, peor <= 0.01, `píxeles distintos por posición: ${pixeles.map((d) => `${(d * 100).toFixed(1)}%`).join(' · ')}`)
+  const vistaBase = vista.split(' ')[0]
+  const jpg = await hojaComparacion(hoja, o.fotos, n.fotos, pixeles, vistaBase)
+  fs.writeFileSync(path.join(RAIZ, pg.ruta === '/' ? `comparacion-${vistaBase}.jpg` : `comparacion-${pg.id}-${vistaBase}.jpg`), jpg)
   await hoja.close()
 }
 
@@ -533,31 +574,6 @@ async function esperarHttp(url, ms) {
     await new Promise((r) => setTimeout(r, 700))
   }
   return false
-}
-
-function servir(dir, puerto) {
-  const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ico': 'image/x-icon', '.txt': 'text/plain' }
-  const srv = http.createServer((req, res) => {
-    let rel = decodeURIComponent(new URL(req.url, 'http://x').pathname)
-    if (rel.endsWith('/')) rel += 'index.html'
-    const f = path.join(dir, rel)
-    if (!f.startsWith(dir) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
-      res.writeHead(404)
-      return res.end()
-    }
-    const tam = fs.statSync(f).size
-    const tipo = tipos[path.extname(f).toLowerCase()] || 'application/octet-stream'
-    const r = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '')
-    if (r && (r[1] || r[2])) {
-      const ini = r[1] ? Number(r[1]) : Math.max(0, tam - Number(r[2]))
-      const fin = r[1] && r[2] ? Math.min(Number(r[2]), tam - 1) : tam - 1
-      res.writeHead(206, { 'Content-Type': tipo, 'Content-Range': `bytes ${ini}-${fin}/${tam}`, 'Accept-Ranges': 'bytes', 'Content-Length': fin - ini + 1 })
-      return fs.createReadStream(f, { start: ini, end: fin }).pipe(res)
-    }
-    res.writeHead(200, { 'Content-Type': tipo, 'Content-Length': tam, 'Accept-Ranges': 'bytes' })
-    fs.createReadStream(f).pipe(res)
-  })
-  return new Promise((r) => srv.listen(puerto, () => r(srv)))
 }
 
 function buscarShoot() {

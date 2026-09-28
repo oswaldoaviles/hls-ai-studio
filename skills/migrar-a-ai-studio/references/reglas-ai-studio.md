@@ -39,6 +39,18 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 | El `index.tsx` de la plantilla no trae `head()`, para que AI Studio inyecte su captura como imagen para redes. | Si la página original tenía `og:image`, la ruta la declara (con su URL de AI Studio). Si no, se deja que AI Studio ponga la suya. |
 | `src/routes/index.tsx` trae un marcador `data-vibe-blank-page-placeholder`. | La ruta `/` del kit lo reemplaza completo. |
 
+## Sitios de varias páginas
+
+| Regla | Remedio |
+|---|---|
+| Un dominio apunta a **un solo proyecto** de AI Studio, que no reparte rutas entre proyectos. | Todo el sitio vive en un proyecto: cada página es una ruta (`src/routes/contacto.tsx` → `/contacto`). |
+| El chat de AI Studio crea páginas si se le pide, pero con su propio diseño. | Las páginas entran como archivos exactos, igual que el home, para que conserven la marca del sitio. |
+| En TanStack, `servicios.tsx` es el *layout* de `servicios/web.tsx`: sin `<Outlet />`, taparía la página hija. | Una página que tiene hijas va en `servicios/index.tsx` (ruta `/servicios/`). El convertidor lo hace solo. |
+| El selector de páginas del editor navega dentro de la app, sin recargar. | `Pagina.tsx` monta el motor de scroll una vez por cada página que entra en pantalla. |
+| Una ruta nueva marca un error de TypeScript unos segundos, hasta que se regenera `routeTree.gen.ts`. | El mensaje de cada ruta nueva avisa que es normal y prohíbe borrarla. |
+| Al actualizar un sitio, reenviar todo cuesta muchos mensajes y arriesga lo que ya funciona (las URLs de las imágenes, la conexión al CRM). | `kit.mjs --desde <ZIP actual>` manda solo lo nuevo o cambiado: conserva las URLs y nunca reenvía un `lead.ts` conectado. |
+| Cada formulario del sitio necesita su propio form ID. | `sendLeadToCrm(campos, formId)` recibe el de cada formulario. Si la conexión existente usaba uno fijo, el kit incremental pide actualizarla. |
+
 ## Los scripts de la página
 
 | Regla | Remedio |

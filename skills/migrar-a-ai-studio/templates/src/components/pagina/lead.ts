@@ -1,9 +1,11 @@
-// Aquí AI Studio conecta su formulario de CRM ("Connect forms to my CRM").
-// formulario.ts ya valida el formulario, manda el evento `lead` a GTM y sigue a su
-// destino. Esta función solo debe enviar el contacto con la integración de
-// formularios de AI Studio (postTrackingEvent de @/lib/tracking).
-export function sendLeadToCrm(campos: Record<string, string>): Promise<unknown> | void {
+// Aquí AI Studio conecta sus formularios de CRM ("Connect forms to my CRM").
+// formulario.ts ya valida cada formulario, manda el evento `lead` a GTM y sigue a su
+// destino. Esta función solo debe enviar el contacto con la integración de formularios
+// de AI Studio (postTrackingEvent de @/lib/tracking), usando el formId que recibe: cada
+// formulario del sitio tiene el suyo.
+export function sendLeadToCrm(campos: Record<string, string>, formId: string): Promise<unknown> | void {
   void campos;
+  void formId;
 }
 
 // Identidad del formulario para el evento `lead` de GTM: los mismos valores que

@@ -1,19 +1,27 @@
-// La página original (hecha con scroll-craft), tal cual: su HTML entra como texto,
-// el motor de scroll se monta al cargar y los <script> propios de la página corren
-// después, en su orden. Las piezas están en contenido.ts; su CSS va en el <head>
-// (head.ts).
-import { useEffect } from "react";
-import { ATRIBUTOS_BODY, HTML, OPCIONES_MOTOR, SCRIPTS } from "./contenido";
+// Cada página del sitio original (hecho con scroll-craft), tal cual: su HTML entra como
+// texto, el motor de scroll se monta al cargar y los <script> propios de la página corren
+// después, en su orden. Las piezas de cada página están en su contenido.ts; su CSS va en
+// el <head> (head.ts). La página principal usa las de esta carpeta; las demás, las de
+// src/components/paginas/<pagina>/.
+import { useEffect, useRef } from "react";
+import * as principal from "./contenido";
 import { resolver } from "./assets";
 import { instalarFormularios } from "./formulario";
 
-const html = resolver(HTML.join(""));
-let scriptsCorridos = false;
+export type Contenido = {
+  HTML: string[];
+  SCRIPTS: { codigo: string; modulo: boolean }[];
+  OPCIONES_MOTOR: Record<string, unknown> | undefined;
+  ATRIBUTOS_BODY: Record<string, string>;
+};
 
 // En el original, los scripts de la página corrían mientras cargaba; aquí corren
 // cuando ya cargó, así que DOMContentLoaded y load ya pasaron. Una función que
 // espere esos eventos se llama en cuanto se registra, como hace $(fn) en jQuery.
+let tardiosListos = false;
 function eventosTardios() {
+  if (tardiosListos) return;
+  tardiosListos = true;
   const yaPaso = (tipo: string) =>
     (tipo === "DOMContentLoaded" && document.readyState !== "loading") ||
     (tipo === "load" && document.readyState === "complete");
@@ -34,43 +42,58 @@ function eventosTardios() {
   }
 }
 
-function correrScripts() {
-  if (scriptsCorridos) return;
-  scriptsCorridos = true;
-  if (SCRIPTS.length) eventosTardios();
-  for (const { codigo, modulo } of SCRIPTS) {
-    const s = document.createElement("script");
-    if (modulo) s.type = "module";
-    s.textContent = resolver(codigo);
-    document.body.appendChild(s);
-  }
-}
+export function crearPagina(contenido: Contenido) {
+  const html = resolver(contenido.HTML.join(""));
+  let scriptsCorridos = false;
 
-export function Pagina() {
-  useEffect(() => {
-    let cancelado = false;
-    for (const [nombre, valor] of Object.entries(ATRIBUTOS_BODY)) {
-      if (nombre === "class") document.body.classList.add(...valor.split(/\s+/).filter(Boolean));
-      else document.body.setAttribute(nombre, valor);
+  function correrScripts() {
+    if (scriptsCorridos) return;
+    scriptsCorridos = true;
+    if (contenido.SCRIPTS.length) eventosTardios();
+    for (const { codigo, modulo } of contenido.SCRIPTS) {
+      const s = document.createElement("script");
+      if (modulo) s.type = "module";
+      s.textContent = resolver(codigo);
+      document.body.appendChild(s);
     }
-    const quitarFormularios = instalarFormularios();
-    void import("@/lib/scrollcraft.js").then(() => {
-      if (cancelado) return;
-      const motor = window.ScrollCraft;
-      if (motor && !motor.instances.length) motor.mount(document.body, OPCIONES_MOTOR);
-      correrScripts();
-    });
-    return () => {
-      cancelado = true;
-      quitarFormularios();
-    };
-  }, []);
+  }
 
-  return (
-    <div
-      className="ai-pagina"
-      style={{ display: "contents" }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
+  return function Pagina() {
+    const raiz = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      let cancelado = false;
+      for (const [nombre, valor] of Object.entries(contenido.ATRIBUTOS_BODY)) {
+        if (nombre === "class") document.body.classList.add(...valor.split(/\s+/).filter(Boolean));
+        else document.body.setAttribute(nombre, valor);
+      }
+      const quitarFormularios = instalarFormularios();
+      void import("@/lib/scrollcraft.js").then(() => {
+        if (cancelado) return;
+        const motor = window.ScrollCraft;
+        // El motor se monta una vez por página en pantalla. Al cambiar de página dentro de la
+        // app (el selector de páginas del editor de AI Studio), la nueva se monta también.
+        if (motor && raiz.current && !raiz.current.hasAttribute("data-motor")) {
+          motor.mount(document.body, contenido.OPCIONES_MOTOR);
+          raiz.current.setAttribute("data-motor", "1");
+        }
+        correrScripts();
+      });
+      return () => {
+        cancelado = true;
+        quitarFormularios();
+      };
+    }, []);
+
+    return (
+      <div
+        ref={raiz}
+        className="ai-pagina"
+        style={{ display: "contents" }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  };
 }
+
+// La página principal (/).
+export const Pagina = crearPagina(principal);

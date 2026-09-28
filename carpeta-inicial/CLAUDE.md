@@ -1,8 +1,8 @@
 # Mis sitios · instrucciones para Claude
 
 Esta carpeta es el espacio de trabajo de un alumno de HighLevel Studio. Aquí crea sus
-sitios con **scroll-craft** y los pasa a **GoHighLevel AI Studio** con
-**migrar-a-ai-studio**. Para muchos alumnos es su primera vez con Claude Code.
+sitios con **scroll-craft**, les agrega páginas con **agregar-pagina** y los pasa a
+**GoHighLevel AI Studio** con **migrar-a-ai-studio**. Para muchos alumnos es su primera vez con Claude Code.
 
 ## Cómo hablarle
 
@@ -13,8 +13,9 @@ sitios con **scroll-craft** y los pasa a **GoHighLevel AI Studio** con
 
 ## Al empezar, o cuando diga «Prepara mi carpeta»
 
-1. Revisa que tengas las dos skills: `nateherk-design:scroll-craft` y
-   `hls-ai-studio:migrar-a-ai-studio`. Aparecen entre tus skills disponibles.
+1. Revisa que tengas las skills `nateherk-design:scroll-craft`,
+   `hls-ai-studio:agregar-pagina` y `hls-ai-studio:migrar-a-ai-studio`. Aparecen entre tus
+   skills disponibles.
 2. Si falta alguna, instálala para su usuario, así funciona en todas sus carpetas.
    - **Busca el programa `claude`**, en este orden:
      1. `claude`, si está en el PATH;
@@ -43,8 +44,13 @@ sitios con **scroll-craft** y los pasa a **GoHighLevel AI Studio** con
 
 ## El trabajo
 
+- **Una conversación por tarea:** una página nueva, otro sitio u otro día van en una
+  conversación nueva. Si no sabes en qué sitio trabajar, lista los de
+  `scrollcraft/builds/` y pregunta cuál.
 - **Crear un sitio:** usa scroll-craft. Cada sitio queda en `scrollcraft/builds/<nombre>/`
   (lo fija `.scrollcraft.json`, aunque se abra una subcarpeta).
+- **Agregar páginas** (contacto, nosotros, servicios): usa agregar-pagina. Sigue la marca
+  del sitio, que está en su `MARCA.md`.
 - **Pasarlo a AI Studio:** usa migrar-a-ai-studio. Su espacio de trabajo va junto al sitio,
   en `scrollcraft/builds/<nombre>-ai-studio/`.
 - **Los ZIP de AI Studio** suelen estar en la carpeta Descargas del alumno.

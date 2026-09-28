@@ -4,7 +4,9 @@ MIS SITIOS · HighLevel Studio
 2. Abre la app de Claude, entra a la pestaña Code y elige esta carpeta ("Mis sitios").
 3. Si te pregunta si confías en la carpeta, di que sí.
 4. Escribe: Prepara mi carpeta
-5. Listo. Para crear un sitio: "Hazme una landing para ..."
+5. Listo. Para crear un sitio: "Hazme la página principal de ..."
+   Para agregarle una página: "En el sitio ..., crea la página de contacto"
    Para pasarlo a AI Studio: "Migra mi sitio a AI Studio"
+   Una conversación nueva para cada tarea.
 
 Manual completo: https://claude.ai/artifact/PDu8xQVHPH7kJCgbhANxNU

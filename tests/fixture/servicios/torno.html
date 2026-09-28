@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clases de torno · Faro Cerámica en Monterrey</title>
+<meta name="description" content="Aprende a centrar, levantar y tornear tu primera pieza en tres horas, con barro, herramientas y horneado incluidos.">
+<meta property="og:image" content="../assets/torno.webp">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c8643b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Geist:wght@400;500&display=swap">
+<link rel="stylesheet" href="../scrollcraft.css">
+<link rel="stylesheet" href="../sitio.css">
+<style>
+  .portada { position: relative; min-height: 100svh; display: grid; align-items: end; padding: 0 20px 70px; background: url("../assets/torno.webp") center / cover no-repeat; }
+  .portada h1 { font: 800 clamp(38px, 7vw, 84px)/1 var(--sc-font-display); margin: 0; max-width: 12ch; }
+  .pasos p { font: 600 clamp(26px, 4.5vw, 54px)/1.1 var(--sc-font-display); max-width: 18ch; }
+  .detalle { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 64px); align-items: center; max-width: 1080px; margin: 0 auto; padding: 90px 20px; }
+  .detalle img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 18px; }
+  .detalle p { color: var(--sc-ink-soft); line-height: 1.65; }
+  @media (max-width: 760px) { .detalle { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="site-bar">
+  <a class="marca" href="../index.html">FARO</a>
+  <nav class="menu" aria-label="Páginas">
+    <a href="../nosotros.html">Nosotros</a>
+    <a href="torno.html">Torno</a>
+    <a href="../contacto.html">Contacto</a>
+  </nav>
+  <a class="cta" href="../contacto.html">Reservar lugar</a>
+</header>
+
+<main>
+  <section class="sc-section portada" data-sc-act="flow">
+    <h1 data-sc-in>Tu primera pieza en el torno</h1>
+  </section>
+
+  <section data-sc-act="pin" data-sc-span="2.4" data-sc-drift="#16130f">
+    <div data-sc-stage class="pasos">
+      <p data-sc-cue="0 0.36 0">Centras el barro.</p>
+      <p data-sc-cue="0.3 0.68">Levantas las paredes.</p>
+      <p data-sc-cue="0.62">Y sale tu taza.</p>
+    </div>
+  </section>
+
+  <section class="sc-section" data-sc-act="flow">
+    <div class="detalle">
+      <img src="../assets/item-1.webp" alt="Taza recién torneada, antes de hornearse.">
+      <div>
+        <h2>Tres horas, una pieza</h2>
+        <p>La clase incluye barro, herramientas, horneado y esmaltado. Recoges tu pieza terminada la semana siguiente.</p>
+        <a class="cta" href="../contacto.html">Reservar mi clase</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="pie"><span>Faro Cerámica · Monterrey</span><a href="../index.html">Volver al inicio</a></footer>
+
+<script src="../scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+</body>
+</html>

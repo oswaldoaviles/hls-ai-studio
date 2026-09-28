@@ -10,7 +10,7 @@
     {
       "name": "hls-ai-studio",
       "source": "./",
-      "description": "Migra a AI Studio los sitios hechos con scroll-craft, con mensajes listos para su chat y verificación final."
+      "description": "Agrega páginas a los sitios hechos con scroll-craft y los migra a AI Studio, con mensajes listos para su chat y verificación final."
     }
   ]
 }

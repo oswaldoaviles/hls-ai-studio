@@ -5,7 +5,9 @@
 // what the chat actually built.
 //
 //   cd <workspace>
-//   node <skill>/scripts/kit.mjs                    -> kit/
+//   node <skill>/scripts/kit.mjs                    -> kit/ (the whole site)
+//   node <skill>/scripts/kit.mjs --desde <zip>      -> kit/ with only what is new or changed
+//                                                      against the student's AI Studio project
 //   node <skill>/scripts/kit.mjs --comparar <zip>   -> what differs, and kit/correcciones/
 //
 // kit/
@@ -62,13 +64,54 @@ const REGLAS = `Vamos a construir una página copiando archivos que ya están te
 
 Si entendiste, responde solo «Entendido».`
 
+const REGLAS_ACTUALIZAR = `Vamos a actualizar el sitio con archivos que ya están terminados y probados fuera de AI Studio: páginas nuevas o cambios a las que ya existen. Te los voy a pasar en varios mensajes, uno por archivo. Reglas para TODOS los mensajes que siguen:
+
+1. Crea o reemplaza cada archivo EXACTAMENTE con el contenido que te paso, carácter por carácter, en la ruta que te indico.
+2. No reformatees, no cambies comillas, punto y coma ni sangrías, no traduzcas, no "mejores", no resumas ni completes código por tu cuenta.
+3. No instales dependencias ni modifiques archivos que no mencione. Los archivos y páginas que ya existen y no te paso se quedan como están.
+4. Si un archivo llega en varias partes, cada parte nueva se agrega AL FINAL del mismo archivo, en la línea siguiente.
+5. Mientras no te pase todos los archivos, la vista previa puede marcar errores: es normal. No corrijas nada, no implementes archivos que falten y no borres ninguno, tampoco rutas ni páginas. Si crees que falta algo, pregúntame.
+6. Responde solo «Listo: <ruta> (parte x de y)».
+
+Si entendiste, responde solo «Entendido».`
+
+// the key → URL pairs of an images' map, quoted or bare keys
+const URLS_RE = /(?:["']([^"']+)["']|([A-Za-z_$][\w$]*))\s*:\s*["'](https?:\/\/[^"']+)["']/g
+const sinComentarios = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
+// how many parameters a function declares (commas inside <>, (), [] or {} do not count)
+function parametrosDe(texto, nombre) {
+  const m = new RegExp(`(?:function\\s+${nombre}\\s*(?:<[^>]*>)?\\s*\\(|\\b${nombre}\\s*=\\s*(?:async\\s*)?\\()`).exec(texto)
+  if (!m) return 0
+  let prof = 0
+  let n = 0
+  let algo = false
+  for (let i = m.index + m[0].length; i < texto.length; i++) {
+    const c = texto[i]
+    if ('<([{'.includes(c)) prof++
+    else if ('>)]}'.includes(c)) {
+      if (prof === 0) break
+      prof--
+    } else if (c === ',' && prof === 0) n++
+    else if (!/\s/.test(c)) algo = true
+  }
+  return algo ? n + 1 : 0
+}
+// the CRM seam, connected with AI Studio's own integration (a real call, not a comment)
+function leadConectado(texto, zip) {
+  const t = sinComentarios(texto || '')
+  return /import\s*\{[^}]*\bpostTrackingEvent\b[^}]*\}\s*from\s*["'][^"']*tracking["']/.test(t) && /\bpostTrackingEvent\s*\(/.test(t) && !!zip.leer('src/lib/tracking.ts')
+}
+
 function mensajeArchivo(n, total, ruta, parte, partes, cuerpo) {
   const titulo = `Mensaje ${String(n).padStart(2, '0')} de ${total} · ${ruta}${partes > 1 ? ` (parte ${parte} de ${partes})` : ''}`
   const accion =
     parte === 1
       ? `Crea el archivo \`${ruta}\` (si ya existe, reemplaza todo su contenido) con EXACTAMENTE este contenido${partes > 1 ? `. Es la parte 1 de ${partes}: las demás llegan en los siguientes mensajes` : ''}.`
       : `Agrega este texto AL FINAL de \`${ruta}\`, en la línea siguiente a la parte ${parte - 1}. Es la parte ${parte} de ${partes}.`
-  const fin = `Responde solo: «Listo: ${ruta}${partes > 1 ? ` (parte ${parte} de ${partes})` : ''}».`
+  const nuevaRuta = /^src\/routes\/(?!index\.tsx$|__root\.tsx$)/.test(ruta)
+    ? ' Es una página nueva del sitio: mientras AI Studio regenera su lista de rutas, TypeScript puede marcar un error en este archivo. Es normal y se quita solo: no lo borres ni lo cambies.'
+    : ''
+  const fin = `Responde solo: «Listo: ${ruta}${partes > 1 ? ` (parte ${parte} de ${partes})` : ''}».${nuevaRuta}`
   // a fence longer than any run of backticks inside, so the code block never ends early
   const valla = '`'.repeat(Math.max(3, ...(cuerpo.match(/`+/g) || []).map((x) => x.length + 1)))
   return `${titulo}\n\n${accion} No lo modifiques. ${fin}\n\n${valla}${fence(ruta)}\n${cuerpo}${cuerpo.endsWith('\n') ? '' : '\n'}${valla}\n`
@@ -76,10 +119,14 @@ function mensajeArchivo(n, total, ruta, parte, partes, cuerpo) {
 
 // images first, then videos in groups of their own: a video the chat refuses never
 // holds an image back
-const grupos = []
-for (const lista of [(M.imagenes || []).filter((i) => i.tipo !== 'video'), (M.imagenes || []).filter((i) => i.tipo === 'video')]) {
-  for (let i = 0; i < lista.length; i += ADJUNTOS_POR_MENSAJE) grupos.push(lista.slice(i, i + ADJUNTOS_POR_MENSAJE))
+function gruposDe(imagenes) {
+  const out = []
+  for (const lista of [imagenes.filter((i) => i.tipo !== 'video'), imagenes.filter((i) => i.tipo === 'video')]) {
+    for (let i = 0; i < lista.length; i += ADJUNTOS_POR_MENSAJE) out.push(lista.slice(i, i + ADJUNTOS_POR_MENSAJE))
+  }
+  return out
 }
+let grupos = gruposDe(M.imagenes || [])
 // the file the student attaches (its name is how the chat knows which key it fills)
 const adjunto = (i) => path.basename(i.archivo)
 const rutaMapa = M.mapaImagenes || 'src/components/pagina/image-urls.ts'
@@ -92,7 +139,7 @@ ${grupos[g].map((i) => `- ${adjunto(i)} → clave "${i.clave}"`).join('\n')}
 
 Responde con estas claves y su URL, y «Listo: grupo ${g + 1} de ${grupos.length}».
 `
-const mensajeRevisarImagenes = `Muéstrame el contenido completo de \`${rutaMapa}\`, sin cambiarlo. Cada una de las ${(M.imagenes || []).length} claves debe tener una URL que empiece con https://.
+const mensajeRevisarImagenes = () => `Muéstrame el contenido completo de \`${rutaMapa}\`, sin cambiarlo. Cada una de las ${(M.imagenes || []).length} claves debe tener una URL que empiece con https://.
 `
 const mensajeCompilar = `Ya están todos los archivos. Si la vista previa no se actualizó sola, compila el proyecto y muéstrala en \`/\`. Si aparece cualquier error, NO lo corrijas ni cambies código: dime el mensaje de error exacto, el archivo y la línea.
 `
@@ -107,20 +154,86 @@ function camposCrm(campos) {
   }
   return campos.map((c) => `«${c.etiqueta || c.name}» (\`${c.name}\`) → ${crm(c).startsWith('un ') ? crm(c) : `\`${crm(c)}\``}`).join(', ')
 }
-const mensajeFormulario = (n, total) => `Mensaje ${String(n).padStart(2, '0')} de ${total} · conectar el formulario al CRM
+// the site's forms, each with its own ID (a hand-written manifest may have one, without IDs)
+const FORMS = (F.formularios || []).map((f) => ({ ...f, formId: f.formId || F.formId }))
+const variosIds = new Set(FORMS.map((f) => f.formId)).size > 1
+const mensajeFormulario = (n, total, { actualizar = false } = {}) => `Mensaje ${String(n).padStart(2, '0')} de ${total} · ${actualizar ? 'actualizar la conexión de los formularios' : `conectar ${FORMS.length > 1 ? 'los formularios' : 'el formulario'} al CRM`}
 
-Conecta a mi CRM el formulario de esta página, con tu integración de formularios de AI Studio (Connect forms to my CRM).
+${actualizar ? `El sitio ahora tiene ${FORMS.length} formularios, cada uno con su propio form ID. Actualiza la conexión que ya hiciste con tu integración de formularios de AI Studio:` : `Conecta a mi CRM ${FORMS.length > 1 ? `los ${FORMS.length} formularios del sitio` : 'el formulario de esta página'}, con tu integración de formularios de AI Studio (Connect forms to my CRM).`}
 
-- ${F.descripcion || `El formulario está en el HTML de la página (\`src/components/pagina/html-NN.ts\`, marcado con \`data-ai-studio-form\`) y su envío lo maneja \`src/components/pagina/formulario.ts\`.`}${F.formularios?.[0]?.campos?.length ? ` Campos: ${camposCrm(F.formularios[0].campos)}.` : ''}
-- ${F.nombre === F.formId && F.source === F.formId && F.mediumId === F.formId ? `Usa \`${F.formId}\` como FORM_ID, CONTACT_SOURCE, MEDIUM_ID y nombre del formulario en el CRM.` : `Nombre del formulario en el CRM: «${F.nombre}». Usa estos valores: FORM_ID \`${F.formId}\`, CONTACT_SOURCE «${F.source}», MEDIUM_ID \`${F.mediumId}\`.`}
-- Implementa el envío SOLO dentro de la función \`${firmaForm}\` de \`${costuraForm}\`, usando tu \`postTrackingEvent\` de \`@/lib/tracking\`. Si \`postTrackingEvent\` devuelve una promesa, regrésala.
-- En ese mismo archivo deja exportados \`LEAD_FORM_ID\` y \`LEAD_SOURCE\` con los valores de tu FORM_ID y CONTACT_SOURCE.
-- NO modifiques ningún otro archivo de la página. No agregues eventos de \`dataLayer\`, toasts, \`window.open\` ni redirecciones: la página ya valida el formulario, manda el evento a GTM y lleva al visitante a su destino.
+- ${F.descripcion || `Están en el HTML de las páginas (archivos \`html-NN.ts\`), marcados con \`data-ai-studio-form\` y con su \`data-form-id\`. Su envío lo maneja \`src/components/pagina/formulario.ts\`.`}
+${FORMS.map((f) => `- ${f.ruta ? `En \`${f.ruta}\`` : 'Formulario'}: form ID \`${f.formId}\`${f.campos?.length ? `. Campos: ${camposCrm(f.campos)}` : ''}.`).join('\n')}
+- ${F.firma ? `Implementa el envío SOLO dentro de la función \`${firmaForm}\` de \`${costuraForm}\`` : `Implementa el envío SOLO dentro de \`sendLeadToCrm(campos, formId)\` de \`${costuraForm}\``}, usando tu \`postTrackingEvent\` de \`@/lib/tracking\`.${F.firma ? '' : ` Usa el \`formId\` que recibe la función como FORM_ID, CONTACT_SOURCE y MEDIUM_ID de ese envío${variosIds ? ', no un valor fijo: cada formulario manda el suyo' : ''}.`} Si \`postTrackingEvent\` devuelve una promesa, regrésala.
+- En ese mismo archivo deja exportados \`LEAD_FORM_ID\` y \`LEAD_SOURCE\`, ambos con \`${F.formId}\`.
+- NO modifiques ningún otro archivo del sitio. No agregues eventos de \`dataLayer\`, toasts, \`window.open\` ni redirecciones: la página ya valida cada formulario, manda el evento a GTM y lleva al visitante a su destino.
 
 Cuando termine, dime qué archivos creaste o cambiaste.
 `
 
-// ---- the guide -------------------------------------------------------------------------
+// ---- the guides -------------------------------------------------------------------------
+const TABLA_CHAT = `**Si el chat…**
+
+| Si el chat… | Respóndele |
+|---|---|
+| pregunta si «lo implementa él» o te da opciones para seguir | Elige siempre **«Te los paso ahora»** y mándale el siguiente mensaje. |
+| dice que «mejoró», «optimizó», «reformateó» o «corrigió» algo | «Vuelve a crear ese archivo exactamente como te lo pasé, sin ningún cambio», y reenvía el mismo mensaje. |
+| contesta con código resumido, con «…» o «resto del código» | Reenvía el mismo mensaje. |
+| dice que el mensaje es muy largo o que un archivo es demasiado grande | Detente y pídele a Claude (en Claude Code) que lo parta más. |
+| dice que un archivo falta o quedó incompleto | Reenvíalo desde \`prompts/sueltos/\`: un mensaje por archivo; si tiene partes, todas en orden. |
+| quiere borrar una ruta o archivo por un error de TypeScript | «No borres nada: ese error desaparece cuando se regenera la vista previa.» |
+`
+
+function guiaActualizacion(mapa, total, r) {
+  const img = mapa.find((x) => x[2] === 'imagenes')?.[0]
+  const form = mapa.find((x) => x[2] === 'formulario')?.[0]
+  return `# Actualizar «${M.proyecto}» en tu proyecto de AI Studio
+
+Estos mensajes le agregan a tu proyecto solo lo que es nuevo o cambió: ${r.nuevos.length} archivo(s)
+nuevo(s) y ${r.cambiados.length} cambiado(s)${r.imagenes ? `, más ${r.imagenes} archivo(s) de assets` : ''}. Lo que ya está en AI Studio no se toca: tus
+imágenes subidas y tu conexión al CRM se conservan. Vas a pegar ${total} mensajes.
+
+${r.paginas.length ? `Páginas nuevas: ${r.paginas.map((x) => `\`${x}\``).join(', ')}.\n\n` : ''}## Mapa de los mensajes
+
+| # | Archivo | Qué hace |
+|---|---|---|
+${mapa.map(([num, nombre, , desc]) => `| ${num} | \`prompts/${nombre}\` | ${desc} |`).join('\n')}
+
+Cómo copiar un mensaje: ábrelo, selecciona todo (Cmd/Ctrl + A), copia (Cmd/Ctrl + C) y
+pégalo en el chat de AI Studio. **Un mensaje a la vez**: espera la respuesta antes del siguiente.
+
+## Paso 1 · Respaldo
+
+En el historial de versiones de tu proyecto, marca (bookmark) la versión actual.
+
+## Paso 2 · Las reglas (mensaje 00)
+
+Pega \`prompts/00-reglas.md\`. **Respuesta esperada:** «Entendido».
+
+## Paso 3 · Los archivos
+
+Pega cada mensaje en orden. **Respuesta esperada:** «Listo: src/…». Una página nueva puede
+marcar un error de TypeScript por unos segundos, mientras AI Studio regenera sus rutas: es
+normal, no dejes que el chat la borre.
+
+${TABLA_CHAT}${img ? `
+## Paso 4 · Los archivos de assets nuevos (mensajes ${img})
+
+Máximo ${ADJUNTOS_POR_MENSAJE} adjuntos por mensaje: cada grupo tiene su carpeta en \`imagenes/\`.
+
+${grupos.map((g, i) => `${i + 1}. **\`imagenes/grupo-${i + 1}/\`** con \`prompts/${mapa.find((x) => x[1].includes(`grupo${i + 1}de`))?.[1] ?? ''}\`: ${g.map((x) => `\`${adjunto(x)}\``).join(', ')}`).join('\n')}
+` : ''}${form ? `
+## Paso 5 · Formularios (mensaje ${form})
+
+Pega el mensaje. Si el chat te pide autorizar la conexión al CRM, acéptalo.
+` : ''}
+## Paso 6 · Publicar y verificar
+
+1. **Publish / Update**, para que el sitio publicado tenga los cambios.
+2. Descarga el ZIP (**Code → Download Codebase**) y dáselo a Claude: compara cada archivo.
+3. Pásale la dirección de tu sitio: revisa cada página, sus formularios y su SEO.
+`
+}
+
 function guia(mapa, total) {
   const n = (pred) => mapa.find(pred)?.[0]
   const ultimoArchivo = [...mapa].reverse().find((x) => x[2] === 'archivo')?.[0]
@@ -174,17 +287,7 @@ Pega \`prompts/00-reglas.md\`. **Respuesta esperada:** «Entendido».
 2. Algunos archivos van en partes («parte 1 de 3»…): mándalas en orden, sin saltarte ninguna.
 3. Mientras falten archivos, la vista previa puede verse rota o marcar errores: es normal.
 
-**Si el chat…**
-
-| Si el chat… | Respóndele |
-|---|---|
-| pregunta si «lo implementa él» o te da opciones para seguir | Elige siempre **«Te los paso ahora»** y mándale el siguiente mensaje. |
-| dice que «mejoró», «optimizó», «reformateó» o «corrigió» algo | «Vuelve a crear ese archivo exactamente como te lo pasé, sin ningún cambio», y reenvía el mismo mensaje. |
-| contesta con código resumido, con «…» o «resto del código» | Reenvía el mismo mensaje. |
-| dice que el mensaje es muy largo o que un archivo es demasiado grande | Detente y pídele a Claude (en Claude Code) que lo parta más. |
-| dice que un archivo falta o quedó incompleto | Reenvíalo desde \`prompts/sueltos/\`: un mensaje por archivo; si tiene partes, todas en orden. |
-| quiere borrar una ruta o archivo por un error de TypeScript | «No borres nada: ese error desaparece cuando se regenera la vista previa.» |
-
+${TABLA_CHAT}
 ### Verificación de los archivos
 
 Al terminar los mensajes de archivos, pega \`prompts/verificar-lineas.md\`. Debe responder
@@ -255,7 +358,7 @@ ${F.existe ? `
 }
 
 // ---- build -------------------------------------------------------------------------------
-async function construir() {
+async function construir({ desde = null } = {}) {
   const zip = fs.existsSync(M.plantilla || '') ? await abrirZip(M.plantilla) : null
   if (!zip) console.log('  ! No encontré el ZIP de la plantilla; uso el formato por defecto de AI Studio.')
   const config = prettierDe(zip)
@@ -278,14 +381,71 @@ async function construir() {
     huella[x.ruta] = { lineas: lineas(texto), exacto: sha(texto), normal: sha(await normalizar(x.ruta, texto)), costura: !!x.costura }
   }
 
+  // what the messages carry: the whole site, or only what the student's project lacks
+  let aEnviar = contenidos
+  let imagenesEnviar = M.imagenes || []
+  let conectar = F.existe ? 'conectar' : null
+  let resumen = null
+  if (desde) {
+    const ai = await abrirZip(desde)
+    const urls = {}
+    for (const m of (ai.leer(rutaMapa) || '').matchAll(URLS_RE)) urls[m[1] || m[2]] = m[3]
+    resumen = { nuevos: [], cambiados: [], imagenes: 0, paginas: [] }
+    aEnviar = []
+    for (const c of contenidos) {
+      const [ruta, texto, x] = c
+      const actual = ai.leer(ruta)
+      if (ruta === rutaMapa) {
+        // same keys, in the same order, with the URLs AI Studio already gave
+        const fusion = texto.replace(/^(\s*)("[^"]+"|[A-Za-z_$][\w$]*)(\s*:\s*)""/gm, (m, sp, k, sep) => {
+          const clave = k.startsWith('"') ? JSON.parse(k) : k
+          return urls[clave] ? `${sp}${k}${sep}${JSON.stringify(urls[clave])}` : m
+        })
+        const faltan = (M.imagenes || []).some((i) => !urls[i.clave] && !(actual || '').includes(JSON.stringify(i.clave)))
+        if (actual == null || faltan) {
+          aEnviar.push([ruta, fusion, x])
+          ;(actual == null ? resumen.nuevos : resumen.cambiados).push(ruta)
+        }
+        continue
+      }
+      if (x.costura) {
+        // the CRM seam (and any other seam) belongs to AI Studio once it exists there
+        if (actual == null) {
+          aEnviar.push(c)
+          resumen.nuevos.push(ruta)
+        }
+        continue
+      }
+      let igual = actual != null && sha(actual) === sha(texto)
+      if (actual != null && !igual) {
+        try {
+          igual = (await normalizar(ruta, actual)) === (await normalizar(ruta, texto))
+        } catch {}
+      }
+      if (igual) continue
+      aEnviar.push(c)
+      ;(actual == null ? resumen.nuevos : resumen.cambiados).push(ruta)
+      if (actual == null && /^src\/routes\/(?!index\.tsx$|__root\.tsx$)/.test(ruta)) resumen.paginas.push(ruta.replace(/^src\/routes/, '').replace(/(\/index)?\.tsx$/, '') || '/')
+    }
+    imagenesEnviar = (M.imagenes || []).filter((i) => !urls[i.clave])
+    resumen.imagenes = imagenesEnviar.length
+    const leadAi = ai.leer(costuraForm)
+    if (F.existe && leadConectado(leadAi, ai)) {
+      // connected before with one fixed ID: the new forms need their own IDs
+      const conFormId = parametrosDe(sinComentarios(leadAi), 'sendLeadToCrm') >= 2
+      conectar = variosIds && !conFormId ? 'actualizar' : null
+    }
+  }
+  grupos = gruposDe(imagenesEnviar)
+
   // messages: one file (or part) each, in the manifest's order
-  const trozos = contenidos.flatMap(([ruta, texto]) => {
+  const trozos = aEnviar.flatMap(([ruta, texto]) => {
     const partes = partir(texto, ruta)
     return partes.map((cuerpo, i) => ({ ruta, parte: i + 1, partes: partes.length, cuerpo }))
   })
-  const total = trozos.length + (grupos.length ? 1 : 0) + (F.existe ? 1 : 0)
+  const total = trozos.length + (grupos.length ? 1 : 0) + (conectar ? 1 : 0)
   const mapa = []
-  const mensajes = [['00-reglas.md', REGLAS + '\n']]
+  const mensajes = [['00-reglas.md', (desde ? REGLAS_ACTUALIZAR : REGLAS) + '\n']]
   mapa.push(['00', '00-reglas.md', 'reglas', 'Las reglas: copiar tal cual, un archivo por mensaje'])
   let n = 1
   for (const t of trozos) {
@@ -301,14 +461,14 @@ async function construir() {
       mapa.push([String(n).padStart(2, '0'), nombre, 'imagenes', `Assets, grupo ${i + 1} de ${grupos.length}: adjuntar ${g.map(adjunto).join(', ')}`])
     })
     const nombre = `${String(n).padStart(2, '0')}-assets-revisar.md`
-    mensajes.push([nombre, mensajeRevisarImagenes])
+    mensajes.push([nombre, mensajeRevisarImagenes()])
     mapa.push([String(n).padStart(2, '0'), nombre, 'imagenes', `Assets: revisar que las ${M.imagenes.length} claves tengan URL`])
     n++
   }
-  if (F.existe) {
-    const nombre = `${String(n).padStart(2, '0')}-conectar-formulario.md`
-    mensajes.push([nombre, mensajeFormulario(n, total)])
-    mapa.push([String(n).padStart(2, '0'), nombre, 'formulario', `Conectar el formulario de AI Studio al CRM («${F.nombre}»)`])
+  if (conectar) {
+    const nombre = `${String(n).padStart(2, '0')}-${conectar === 'actualizar' ? 'actualizar-formularios' : 'conectar-formulario'}.md`
+    mensajes.push([nombre, mensajeFormulario(n, total, { actualizar: conectar === 'actualizar' })])
+    mapa.push([String(n).padStart(2, '0'), nombre, 'formulario', conectar === 'actualizar' ? `Actualizar la conexión al CRM: cada formulario con su form ID (${FORMS.map((f) => `\`${f.formId}\``).join(', ')})` : `Conectar ${FORMS.length > 1 ? 'los formularios' : 'el formulario'} de AI Studio al CRM (${FORMS.map((f) => `\`${f.formId}\``).join(', ')})`])
   }
   mensajes.push(['compilar.md', mensajeCompilar])
 
@@ -335,7 +495,7 @@ Revisa estos archivos del proyecto. Para los que tienen un número, cuenta sus l
 
 | Archivo | Líneas esperadas |
 |---|---|
-${contenidos.map(([ruta, texto]) => `| \`${ruta}\` | ${reformateable(ruta) ? 'solo que exista' : lineas(texto)} |`).join('\n')}
+${aEnviar.map(([ruta, texto]) => `| \`${ruta}\` | ${reformateable(ruta) ? 'solo que exista' : lineas(texto)} |`).join('\n')}
 `,
   )
 
@@ -346,13 +506,14 @@ ${contenidos.map(([ruta, texto]) => `| \`${ruta}\` | ${reformateable(ruta) ? 'so
     for (const i of g) fs.copyFileSync(i.archivo, path.join(dir, adjunto(i)))
   })
 
-  escribir(path.join(KIT, 'PASOS.md'), guia(mapa, mensajes.length - 1))
+  escribir(path.join(KIT, 'PASOS.md'), desde ? guiaActualizacion(mapa, mensajes.length - 1, resumen) : guia(mapa, mensajes.length - 1))
   escribir(
     path.join(KIT, 'referencia', 'manifest.json'),
     JSON.stringify({ archivos: huella, imagenes: (M.imagenes || []).map((i) => ({ clave: i.clave, sha: sha(fs.readFileSync(i.archivo)) })), mapa: rutaMapa, costuraForm, formulario: F.existe }, null, 2),
   )
   const mayor = Math.max(...mensajes.map(([, t]) => Buffer.byteLength(t)))
-  console.log(`kit/: ${contenidos.length} archivos, ${mensajes.length - 1} mensajes (el mayor, ${(mayor / 1024).toFixed(1)} KB), ${(M.imagenes || []).length} assets en ${grupos.length} grupo(s)`)
+  if (resumen) console.log(`kit/ (actualización): ${resumen.nuevos.length} archivo(s) nuevo(s), ${resumen.cambiados.length} cambiado(s), ${resumen.imagenes} asset(s) nuevo(s)${resumen.paginas.length ? `, páginas nuevas: ${resumen.paginas.join(', ')}` : ''}${conectar ? `, ${conectar === 'actualizar' ? 'actualizar' : 'conectar'} formularios` : ''} · ${mensajes.length - 1} mensajes`)
+  else console.log(`kit/: ${contenidos.length} archivos, ${mensajes.length - 1} mensajes (el mayor, ${(mayor / 1024).toFixed(1)} KB), ${(M.imagenes || []).length} assets en ${grupos.length} grupo(s)`)
 }
 
 // ---- compare an AI Studio ZIP with the kit ---------------------------------------------
@@ -386,7 +547,7 @@ async function comparar(zipArchivo) {
   // assets: every key has a URL, and each URL serves exactly the local file
   const mapa = zip.leer(ref.mapa) || ''
   const urls = {}
-  for (const m of mapa.matchAll(/(?:["']([^"']+)["']|([A-Za-z_$][\w$]*))\s*:\s*["'](https?:\/\/[^"']+)["']/g)) urls[m[1] || m[2]] = m[3]
+  for (const m of mapa.matchAll(URLS_RE)) urls[m[1] || m[2]] = m[3]
   const sinUrl = ref.imagenes.filter((i) => !urls[i.clave]).map((i) => i.clave)
   if (ref.imagenes.length) console.log(sinUrl.length ? `  ✗ assets sin URL: ${sinUrl.join(', ')}` : `  ✓ los ${ref.imagenes.length} assets tienen URL`)
   const conUrl = ref.imagenes.filter((i) => urls[i.clave])
@@ -407,9 +568,8 @@ async function comparar(zipArchivo) {
   // the form
   if (ref.formulario) {
     // real use, not a mention in a comment: imported from its tracking module and called
-    const lead = (zip.leer(ref.costuraForm) || '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
-    const importa = /import\s*\{[^}]*\bpostTrackingEvent\b[^}]*\}\s*from\s*["'][^"']*tracking["']/.test(lead)
-    const ok = importa && /\bpostTrackingEvent\s*\(/.test(lead) && zip.leer('src/lib/tracking.ts') && /\bLEAD_FORM_ID\b/.test(lead) && /\bLEAD_SOURCE\b/.test(lead)
+    const lead = zip.leer(ref.costuraForm) || ''
+    const ok = leadConectado(lead, zip) && /\bLEAD_FORM_ID\b/.test(lead) && /\bLEAD_SOURCE\b/.test(lead)
     console.log(ok ? `  ✓ el formulario usa el postTrackingEvent de AI Studio (${ref.costuraForm})` : '  ✗ el formulario todavía no está conectado (falta el mensaje de conectar o no se aplicó)')
   }
 
@@ -434,4 +594,4 @@ async function comparar(zipArchivo) {
 if (a.comparar) {
   const bien = await comparar(path.resolve(a.comparar))
   process.exit(bien ? 0 : 1)
-} else await construir()
+} else await construir({ desde: typeof a.desde === 'string' ? path.resolve(a.desde) : null })

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Checks the page AI Studio published (…vibepreview.app or the final domain), on
-// a phone and on a desktop: it loads with its styles, fonts, images and videos,
-// without errors, and its form reaches the CRM. The CRM request is captured and
-// ABORTED, so no contact is created: the payload is printed instead.
+// Checks the site AI Studio published (…vibepreview.app or the final domain), every
+// page, on a phone and on a desktop: it loads with its styles, fonts, images and
+// videos, without errors, its SEO is complete, and its forms reach the CRM. The CRM
+// request is captured and ABORTED, so no contact is created: the payload is printed
+// instead. The pages come from manifiesto.json, or else from the site's sitemap.xml.
 //
 //   cd <workspace>
 //   node <skill>/scripts/probar-preview.mjs <url> [--sin-envio]
@@ -30,6 +31,21 @@ function ok(nombre, bien, detalle = '') {
 const nota = (m) => console.log(`  · ${m}`)
 const CRM = /leadconnectorhq\.com|msgsndr\.com|gohighlevel\.com\/.*(form|survey)/
 
+// the pages: the manifest's, or the site's sitemap, or just the address given
+async function paginasDelSitio() {
+  if (M?.paginas?.length) return M.paginas.map((pg) => ({ ruta: pg.ruta, titulo: pg.titulo, formularios: (pg.formularios || []).length }))
+  try {
+    const r = await fetch(new URL('/sitemap.xml', URL_PAGINA), { redirect: 'follow' })
+    if (r.ok) {
+      const rutas = [...new Set([...(await r.text()).matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => new URL(m[1]).pathname))]
+      if (rutas.length) return rutas.map((ruta) => ({ ruta, titulo: null, formularios: null }))
+    }
+  } catch {}
+  return [{ ruta: new URL(URL_PAGINA).pathname || '/', titulo: M?.meta?.titulo ?? null, formularios: null }]
+}
+const PAGINAS = await paginasDelSitio()
+console.log(`${PAGINAS.length} página(s): ${PAGINAS.map((pg) => pg.ruta).join(' · ')}`)
+
 const { chromium } = await cargar('playwright-core')
 const navegador = await chromium.launch({ channel: 'chrome', headless: true })
 const vistas = [
@@ -37,7 +53,7 @@ const vistas = [
   ['escritorio', { viewport: { width: 1440, height: 900 } }],
 ]
 try {
-  for (const [vista, opciones] of vistas) await probar(vista, opciones)
+  for (const pg of PAGINAS) for (const [vista, opciones] of vistas) await probar(pg, vista, opciones)
 } catch (e) {
   ok('Prueba en Chrome', false, e.message)
 } finally {
@@ -48,8 +64,9 @@ const malos = resultados.filter((r) => !r.bien)
 console.log(`\n${resultados.length - malos.length}/${resultados.length} pruebas bien en ${URL_PAGINA}`)
 process.exit(malos.length ? 1 : 0)
 
-async function probar(vista, opciones) {
-  console.log(`\n${vista}`)
+async function probar(pg, vista, opciones) {
+  console.log(`\n${pg.ruta} · ${vista}`)
+  const direccion = new URL(pg.ruta, URL_PAGINA).href
   const ctx = await navegador.newContext(opciones)
   // how long the main content takes to appear (Largest Contentful Paint), as Google measures it
   await ctx.addInitScript(() => {
@@ -97,7 +114,7 @@ async function probar(vista, opciones) {
   })
 
   const t0 = Date.now()
-  await p.goto(URL_PAGINA, { waitUntil: 'domcontentloaded', timeout: 60000 })
+  await p.goto(direccion, { waitUntil: 'domcontentloaded', timeout: 60000 })
   const listo = await p.waitForSelector('html.sc-ready', { timeout: 30000 }).then(() => true).catch(() => false)
   ok('el motor de scroll-craft arrancó', listo, listo ? `${Date.now() - t0} ms` : 'html.sc-ready nunca apareció (¿falta scrollcraft.js o falló la página?)')
   await p.evaluate(() => document.fonts.ready)
@@ -130,10 +147,11 @@ async function probar(vista, opciones) {
     fuentes: [...new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/["']/g, '')))].sort(),
     fondo: getComputedStyle(document.body).backgroundColor,
   }))
-  ok('es la página migrada (no la plantilla en blanco)', !estado.marcador && (!M?.meta?.titulo || estado.titulo === M.meta.titulo), `título: ${estado.titulo}`)
+  const tituloEsperado = pg.titulo || (pg.ruta === '/' ? M?.meta?.titulo : null)
+  ok('es la página migrada (no la plantilla en blanco)', !estado.marcador && (!tituloEsperado || estado.titulo === tituloEsperado), `título: ${estado.titulo}`)
   ok('llegaron los estilos del motor y de la página', estado.hojaMotor && estado.estilosPagina, `fondo ${estado.fondo}`)
   ok('fuentes cargadas', estado.fuentes.length > 0 || !M, estado.fuentes.join(', ') || 'solo fuentes del sistema')
-  if (vista === 'teléfono') await revisarSeo(p)
+  if (vista === 'teléfono') await revisarSeo(p, pg === PAGINAS[0])
 
   // walk the page so every lazy image, video and act is exercised
   const alto = await p.evaluate(() => document.documentElement.scrollHeight)
@@ -165,25 +183,27 @@ async function probar(vista, opciones) {
     if (peores.length) nota(`Para revisar en el teléfono (puede ser un silencio intencional): ${peores.slice(0, 6).join(' · ')}`)
   }
 
-  if (!a['sin-envio']) await enviar(p, vista, envios, destinos)
+  if (!a['sin-envio'] && pg.formularios !== 0) await enviar(p, vista, envios, destinos, pg)
   ok('sin errores en la consola', errores.length === 0, errores.slice(0, 6).join('\n'))
   ok('sin peticiones fallidas', fallidos.length === 0, fallidos.slice(0, 8).join('\n'))
   await ctx.close()
 }
 
-async function enviar(p, vista, envios, destinos) {
+async function enviar(p, vista, envios, destinos, pg) {
   await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   await p.waitForTimeout(400)
-  const abrir = typeof a.abrir === 'string' ? a.abrir : M?.formulario?.abrir
+  // --abrir and --form are the home's (a form inside a dialog, on a hand-made site)
+  const principal = pg.ruta === '/'
+  const abrir = principal ? (typeof a.abrir === 'string' ? a.abrir : M?.formulario?.abrir) : null
   if (abrir) {
     const boton = p.locator(abrir).first()
     await (vista === 'teléfono' ? boton.tap() : boton.click())
     await p.waitForTimeout(700)
   }
-  const selector = typeof a.form === 'string' ? a.form : M?.formulario?.selector || 'form[data-ai-studio-form]'
+  const selector = (principal && (typeof a.form === 'string' ? a.form : M?.formulario?.selector)) || 'form[data-ai-studio-form]'
   const hay = await p.locator(selector).count()
   if (!hay) {
-    if (M?.formulario?.existe || a.form) ok('el formulario está en la página', false, `no encontré ${selector}`)
+    if (pg.formularios > 0 || (principal && a.form)) ok('el formulario está en la página', false, `no encontré ${selector}`)
     return
   }
   const antes = p.url()
@@ -234,11 +254,11 @@ async function enviar(p, vista, envios, destinos) {
 
 // SEO on the published site: the server's HTML, robots.txt and sitemap.xml. On the final
 // domain it expects the SEO final (canonical, structured data, sitemap); on the preview, notes.
-async function revisarSeo(p) {
+async function revisarSeo(p, primera) {
   const final = new URL(p.url())
-  if (final.hostname !== HOST) nota(`La dirección redirige a ${final.origin}: ese es el dominio del sitio`)
+  if (primera && final.hostname !== HOST) nota(`La dirección redirige a ${final.origin}: ese es el dominio del sitio`)
   const enDominio = !/\.vibepreview\.app$/i.test(final.hostname)
-  const url = enDominio ? `${final.origin}/` : null
+  const url = enDominio ? `${final.origin}${final.pathname}` : null
   let html = ''
   try {
     html = await (await fetch(final.href)).text()
@@ -246,13 +266,14 @@ async function revisarSeo(p) {
     ok('SEO: leer el HTML del servidor', false, e.message)
     return
   }
-  const seo = [...auditarHtml(html, { url }), ...(await auditarRastreo(final.origin, { url }))]
+  // robots.txt and the sitemap once, with the first page; the rest, per page
+  const seo = [...auditarHtml(html, { url }), ...(primera ? await auditarRastreo(final.origin, { url: enDominio ? `${final.origin}/` : null }) : [])]
   for (const x of seo) {
     if (x.nivel === 'nota') nota(`SEO: ${x.texto}`)
     else ok(`SEO: ${x.texto}`, x.nivel === 'ok')
   }
   if (enDominio && seo.some((x) => x.nivel === 'error')) nota('Para corregirlo: «haz el SEO final de mi sitio» (SKILL.md, paso 8)')
-  if (!enDominio) nota('SEO: la página aún está en la vista previa de AI Studio. Conecta el dominio y haz el SEO final.')
+  if (!enDominio && primera) nota('SEO: el sitio aún está en la vista previa de AI Studio. Conecta el dominio y haz el SEO final.')
   const lcp = await p.evaluate(() => window.__lcp || 0)
   if (lcp) nota(`Velocidad: el contenido principal aparece a los ${(lcp / 1000).toFixed(1)} s en teléfono (Google recomienda menos de 2.5 s)`)
 }

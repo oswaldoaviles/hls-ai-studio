@@ -5,6 +5,7 @@
 // migration workspace by `doctor.mjs --preparar` and loaded from there. The
 // workspace is the current directory, or HLS_ESPACIO.
 import fs from 'node:fs'
+import http from 'node:http'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
@@ -259,4 +260,30 @@ export function args(argv = process.argv.slice(2)) {
     } else out._.push(a)
   }
   return out
+}
+
+/** A static server for a build folder, with byte ranges (the engine seeks in videos). */
+export function servir(dir, puerto) {
+  const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ico': 'image/x-icon', '.txt': 'text/plain' }
+  const srv = http.createServer((req, res) => {
+    let rel = decodeURIComponent(new URL(req.url, 'http://x').pathname)
+    if (rel.endsWith('/')) rel += 'index.html'
+    const f = path.join(dir, rel)
+    if (!f.startsWith(dir) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
+      res.writeHead(404)
+      return res.end()
+    }
+    const tam = fs.statSync(f).size
+    const tipo = tipos[path.extname(f).toLowerCase()] || 'application/octet-stream'
+    const r = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '')
+    if (r && (r[1] || r[2])) {
+      const ini = r[1] ? Number(r[1]) : Math.max(0, tam - Number(r[2]))
+      const fin = r[1] && r[2] ? Math.min(Number(r[2]), tam - 1) : tam - 1
+      res.writeHead(206, { 'Content-Type': tipo, 'Content-Range': `bytes ${ini}-${fin}/${tam}`, 'Accept-Ranges': 'bytes', 'Content-Length': fin - ini + 1 })
+      return fs.createReadStream(f, { start: ini, end: fin }).pipe(res)
+    }
+    res.writeHead(200, { 'Content-Type': tipo, 'Content-Length': tam, 'Accept-Ranges': 'bytes' })
+    fs.createReadStream(f).pipe(res)
+  })
+  return new Promise((r) => srv.listen(puerto, () => r(srv)))
 }

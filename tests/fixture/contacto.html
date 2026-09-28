@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contacto · Faro Cerámica en Monterrey</title>
+<meta name="description" content="Escríbenos para reservar tu clase de torno, pedir una fecha privada para tu grupo o preguntar por los cursos del taller.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c8643b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Geist:wght@400;500&display=swap">
+<link rel="stylesheet" href="scrollcraft.css">
+<link rel="stylesheet" href="sitio.css">
+<style>
+  .contacto { display: grid; gap: 24px; max-width: 640px; margin: 0 auto; padding: 140px 20px 80px; }
+  .contacto h1 { font: 800 clamp(34px, 6vw, 56px)/1.05 var(--sc-font-display); margin: 0; }
+  .contacto p { color: var(--sc-ink-soft); margin: 0; line-height: 1.6; }
+  .formulario-contacto { display: grid; gap: 10px; }
+  .formulario-contacto label { font: 500 14px/1.2 var(--sc-font-text); color: var(--sc-ink-soft); }
+  .formulario-contacto input, .formulario-contacto textarea { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #3a332b; background: var(--sc-surface); color: var(--sc-ink); font: 400 16px/1.4 var(--sc-font-text); }
+  .formulario-contacto textarea { min-height: 120px; resize: vertical; }
+  .formulario-contacto .cta { justify-self: start; margin-top: 6px; }
+  .formulario-contacto[data-estado="enviado"]::after { content: "Gracias: te respondemos hoy mismo."; color: var(--sc-accent); }
+</style>
+</head>
+<body>
+
+<header class="site-bar">
+  <a class="marca" href="index.html">FARO</a>
+  <nav class="menu" aria-label="Páginas">
+    <a href="nosotros.html">Nosotros</a>
+    <a href="servicios/torno.html">Torno</a>
+    <a href="contacto.html">Contacto</a>
+  </nav>
+  <a class="cta" href="index.html#join">Reservar lugar</a>
+</header>
+
+<main>
+  <section class="sc-section" data-sc-act="flow">
+    <div class="contacto">
+      <h1>Hablemos de tu clase</h1>
+      <p>¿Quieres una fecha privada para tu grupo o tienes dudas sobre los cursos? Escríbenos y te respondemos el mismo día.</p>
+      <form class="formulario-contacto">
+        <label for="c-nombre">Nombre</label>
+        <input id="c-nombre" name="nombre" autocomplete="given-name" required>
+        <label for="c-correo">Correo</label>
+        <input id="c-correo" name="email" type="email" autocomplete="email" required>
+        <label for="c-mensaje">Mensaje</label>
+        <textarea id="c-mensaje" name="mensaje"></textarea>
+        <button class="cta" type="submit">Enviar mensaje</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="pie"><span>Faro Cerámica · Monterrey</span><a href="index.html">Volver al inicio</a></footer>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+</body>
+</html>

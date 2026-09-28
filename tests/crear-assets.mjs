@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Builds the test site: tests/fixture/index.html plus the scroll-craft engine and
+// Builds the test site: the pages in tests/fixture/ (a home, nosotros, contacto and a
+// service page in servicios/, sharing sitio.css) plus the scroll-craft engine and
 // synthetic assets (WebP drawn by Chrome, since ffmpeg often lacks a WebP
 // encoder; MP4 clips encoded for scrubbing with ffmpeg).
 //
@@ -36,7 +37,7 @@ const SC = buscarScrollCraft()
 if (!SC) throw new Error('No encontré el skill scroll-craft (pasa --scroll-craft <carpeta>)')
 
 fs.mkdirSync(path.join(DESTINO, 'assets'), { recursive: true })
-fs.copyFileSync(path.join(AQUI, 'fixture', 'index.html'), path.join(DESTINO, 'index.html'))
+fs.cpSync(path.join(AQUI, 'fixture'), DESTINO, { recursive: true })
 for (const f of ['scrollcraft.js', 'scrollcraft.css']) fs.copyFileSync(path.join(SC, 'engine', f), path.join(DESTINO, f))
 
 // stills: a warm gradient, a few shapes and the file's name, so a wrong URL shows
@@ -48,6 +49,7 @@ const stills = [
   ['item-2.webp', 800, 1000, '#2c2420', '#b98b6a'],
   ['item-3.webp', 800, 1000, '#1f1a17', '#8f6a50'],
   ['og.jpg', 1200, 630, '#3b2415', '#e0874f'],
+  ['torno.webp', 1600, 1000, '#2f1d12', '#c8643b'],
 ]
 const { chromium } = await cargar('playwright-core')
 const b = await chromium.launch({ channel: 'chrome', headless: true })

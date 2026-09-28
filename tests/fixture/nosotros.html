@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nosotros · Faro Cerámica, taller de torno</title>
+<meta name="description" content="Faro es un taller de cerámica en Monterrey: grupos pequeños, barro de la región y un horno propio para que te lleves tu pieza terminada.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c8643b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Geist:wght@400;500&display=swap">
+<link rel="stylesheet" href="scrollcraft.css">
+<link rel="stylesheet" href="sitio.css">
+<style>
+  .historia { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(24px, 5vw, 64px); align-items: center; max-width: 1080px; margin: 0 auto; padding: 140px 20px 90px; }
+  .historia h1 { font: 800 clamp(34px, 6vw, 60px)/1.04 var(--sc-font-display); margin: 0 0 18px; }
+  .historia p { color: var(--sc-ink-soft); line-height: 1.65; margin: 0 0 14px; max-width: 58ch; }
+  .historia img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 18px; }
+  @media (max-width: 760px) { .historia { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="site-bar">
+  <a class="marca" href="index.html">FARO</a>
+  <nav class="menu" aria-label="Páginas">
+    <a href="nosotros.html">Nosotros</a>
+    <a href="servicios/torno.html">Torno</a>
+    <a href="contacto.html">Contacto</a>
+  </nav>
+  <a class="cta" href="contacto.html">Reservar lugar</a>
+</header>
+
+<main>
+  <section class="sc-section" data-sc-act="flow">
+    <div class="historia">
+      <div>
+        <h1>Un taller, seis tornos</h1>
+        <p>Empezamos en 2019 con dos tornos en una cochera. Hoy somos un taller con horno propio, barro de la región y grupos de seis personas como máximo.</p>
+        <p>Cada clase termina con una pieza tuya, horneada y esmaltada en el taller.</p>
+      </div>
+      <img src="assets/item-2.webp" alt="Mesa de trabajo del taller con piezas recién torneadas.">
+    </div>
+  </section>
+</main>
+
+<footer class="pie"><span>Faro Cerámica · Monterrey</span><a href="contacto.html">Escríbenos</a></footer>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+</body>
+</html>

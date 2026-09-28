@@ -2,15 +2,16 @@
 name: migrar-a-ai-studio
 description: >
   Migra a GoHighLevel AI Studio (GHL AI Studio, HighLevel AI Studio) un sitio
-  hecho con scroll-craft: lo convierte a la plantilla TanStack del proyecto del
-  alumno, lo prueba sobre esa plantilla real junto al original, y entrega un kit
-  con los mensajes para el chat de AI Studio (uno por archivo), las imágenes en
-  grupos de 5, la conexión del formulario nativo al CRM y una guía en español.
-  Después compara el ZIP que exporta AI Studio y prueba la URL publicada sin
-  crear contactos. Úsalo cuando el alumno diga "migra mi sitio a AI Studio",
-  "pasa mi página a GoHighLevel", "súbelo a AI Studio", "transferir la web a
-  AI Studio", "quiero mi landing en HighLevel", o comparta un ZIP de AI Studio
-  o una URL vibepreview.app de una migración en curso.
+  hecho con scroll-craft, de una página o de varias (home, contacto, servicios…):
+  lo convierte a la plantilla TanStack del proyecto del alumno, lo prueba sobre esa
+  plantilla real junto al original, y entrega un kit con los mensajes para el chat
+  de AI Studio (uno por archivo), las imágenes en grupos de 5, la conexión de los
+  formularios nativos al CRM y una guía en español. Si el sitio ya está en AI Studio,
+  el kit trae solo lo nuevo. Después compara el ZIP que exporta AI Studio y prueba
+  el sitio publicado sin crear contactos. Úsalo cuando el alumno diga "migra mi
+  sitio a AI Studio", "pasa las páginas nuevas a AI Studio", "pasa mi página a
+  GoHighLevel", "súbelo a AI Studio", "actualiza mi sitio en AI Studio", o comparta
+  un ZIP de AI Studio o la dirección de un sitio en migración.
 ---
 
 # Migrar un sitio a GoHighLevel AI Studio
@@ -46,17 +47,29 @@ this skill»). Los scripts están en `<skill>/scripts/`.
    `scrollcraft.css` y `assets/`. Si no sabes cuál, busca en el workspace de scroll-craft
    (`<workspace>/builds/<nombre>/`) y confírmalo con el alumno. Si es una app
    TanStack/React y no HTML, sigue [Si el sitio no es HTML](#si-el-sitio-no-es-html).
+   - **Todas las páginas se migran juntas.** Cada `.html` del build es una página:
+     `index.html` → `/`, `contacto.html` → `/contacto`,
+     `servicios/web.html` → `/servicios/web`. Las crea el skill `agregar-pagina`.
+   - **Si el sitio ya está en AI Studio** y el alumno agregó páginas o cambió algo, pídele
+     el ZIP **actual** de su proyecto (no el en blanco) y sigue
+     [Actualizar un sitio que ya está en AI Studio](#actualizar-un-sitio-que-ya-está-en-ai-studio).
 2. **El ZIP de su proyecto nuevo, en blanco.** Pídele que en AI Studio cree un proyecto
    nuevo, no le pida nada al chat y lo descargue: **Code → Download Codebase**, o
    **Project Settings → Download Codebase**. El kit se prueba sobre esa plantilla, así
    que ninguna otra sirve: la plantilla cambia entre versiones.
-3. **El form ID**, si la página tiene formulario. Hazle al alumno una sola pregunta y
-   no propongas nombres:
+3. **El form ID**, si hay formularios. Hazle al alumno una sola pregunta y no propongas
+   nombres:
 
    > ¿Quieres darle un form ID específico a tu formulario? Si no, se llamará `registro`.
 
-   - Si da uno, úsalo tal cual con `--form-id`. Si no, no pases nada: el ID genérico es
-     `registro`.
+   Con varias páginas, nómbralos todos: «los formularios se llamarán `registro` (inicio)
+   y `contacto` (contacto)».
+
+   - El genérico es `registro` en el home y el id de la página en las demás
+     (`contacto`, `servicios-web`).
+   - Si da uno para el home, pásalo con `--form-id`; para otras páginas, con
+     `--form-ids contacto=<id>,servicios-web=<id>`. Si no da ninguno, no pases nada.
+   - Una conversión nueva conserva los IDs elegidos antes (quedan en el manifiesto).
    - El mismo ID se usa como nombre en el CRM, fuente del contacto y medio.
    - Nada de «landing», «nueva», versiones ni fechas: el ID debe servir aunque rehaga la
      página.
@@ -86,8 +99,16 @@ node <skill>/scripts/convertir-html.mjs "<build>" --plantilla "<zip en blanco>" 
 
 Qué hace:
 
-- **HTML:** el `<body>` va tal cual, como texto, partido en `src/components/pagina/html-NN.ts`.
-  No se traduce a JSX, así que la página queda idéntica y los textos se editan ahí.
+- **Páginas:**
+  - el home va en `src/components/pagina/` y su ruta es `src/routes/index.tsx`;
+  - cada página extra va en `src/components/paginas/<id>/` y su ruta es
+    `src/routes/<ruta>.tsx`;
+  - los enlaces entre páginas (`contacto.html`, `../index.html`) se vuelven direcciones
+    (`/contacto`, `/`).
+- **HTML:** el `<body>` de cada página va tal cual, como texto, partido en `html-NN.ts`. No
+  se traduce a JSX, así que queda idéntica y los textos se editan ahí.
+- **Hojas compartidas:** una hoja que enlazan varias páginas (`sitio.css`) va una sola vez,
+  en `src/components/pagina/compartido-*.ts`.
 - **CSS:** la hoja de la página va en `css-NN.ts` y se inyecta en el `<head>`. El
   preflight de Tailwind de la plantilla se deshace en esa ruta (ver las reglas).
 - **Motor:** `scrollcraft.js` y `scrollcraft.css` van a `src/lib/`, sin comentarios. El
@@ -96,9 +117,12 @@ Qué hace:
   `DOMContentLoaded` y `load` se atienden aunque ya hayan pasado.
 - **Assets:** cada referencia a `assets/` se vuelve un token que se resuelve con
   `image-urls.ts`, que el chat llena al subir los archivos.
-- **Formularios:** se marcan `data-ai-studio-form`. Al enviar, `formulario.ts` valida,
-  llama a `sendLeadToCrm` (en `lead.ts`, que conecta AI Studio), manda el evento `lead` a
-  GTM y sigue a su destino en la misma pestaña.
+- **Formularios:** se marcan `data-ai-studio-form` y llevan su `data-form-id`. Al enviar,
+  `formulario.ts`:
+  1. valida los campos;
+  2. llama a `sendLeadToCrm(campos, formId)` en `lead.ts`, que conecta AI Studio;
+  3. manda el evento `lead` a GTM;
+  4. sigue a su destino en la misma pestaña.
 - **Root:** es el de la plantilla del alumno; solo cambian `lang` y `viewport-fit`.
 
 Lee los **avisos** que imprime (también quedan en `manifiesto.json`) y resuélvelos o
@@ -115,20 +139,20 @@ primera vez tarda 1–3 minutos) y prueba:
 
 - **La plantilla:** `vite build` con la configuración de AI Studio, TypeScript estricto
   de la plantilla y su Prettier.
-- **La página en Chrome, en escritorio y teléfono:** el motor arranca, sin errores ni
+- **Cada página en Chrome, en escritorio y teléfono:** el motor arranca, sin errores ni
   peticiones fallidas, cargan imágenes y videos, y el HTML llega armado desde el servidor.
-- **El formulario:** entrega sus campos a `sendLeadToCrm` (grabados, nada sale de la
-  máquina), manda el evento de GTM y va a su destino.
-- **Contra la página original, lado a lado:**
+- **Los formularios:** cada uno entrega sus campos y su form ID a `sendLeadToCrm`
+  (grabados, nada sale de la máquina), manda el evento de GTM y va a su destino.
+- **Cada página contra su original, lado a lado:**
   - el mismo alto;
   - cada elemento con la misma caja y los mismos estilos;
   - los mismos atributos en `<html>` y `<body>` (los scripts corrieron);
   - el mismo texto;
-  - los mismos píxeles en 9 puntos del scroll.
+  - los mismos píxeles en 9 puntos del scroll (5 en las páginas que no son el home).
+- **El SEO de cada página,** y un sitemap que las lista todas cuando hay dominio.
 
-**Mira las imágenes** `.validar/comparacion-escritorio.jpg` y
-`.validar/comparacion-telefono.jpg` (con Read): la prueba de píxeles no sabe si algo se
-ve mal en las dos versiones.
+**Mira las imágenes** `.validar/comparacion-*.jpg` (con Read): la prueba de píxeles no sabe
+si algo se ve mal en las dos versiones.
 
 Si algo sale ✗, el detalle dice qué elemento y qué propiedad cambiaron. Corrige en el
 **build original** (nunca en `scrollcraft.js`), vuelve a correr `convertir-html.mjs` y
@@ -252,6 +276,34 @@ plantilla («AI Studio», «AI Studio Generated Project»).
   («AI Studio Form Submitted» o «External Tracking Event»). Que haga otro lead y confirme
   que corren.
 
+## Actualizar un sitio que ya está en AI Studio
+
+Cuando el alumno agrega páginas (con `agregar-pagina`) o cambia alguna, **no** se rehace la
+migración: se manda solo lo nuevo.
+
+1. **Pídele el ZIP actual de su proyecto** (**Code → Download Codebase**): la plantilla ya
+   no está en blanco, pero el kit se compara contra lo que tiene hoy.
+2. **Reconvierte todo el sitio** en el mismo espacio de trabajo (los form IDs se conservan
+   del manifiesto) y **valida**, como en los pasos 3 y 4.
+3. **El kit incremental:**
+
+   ```bash
+   node <skill>/scripts/kit.mjs --desde "<ZIP actual de AI Studio>"
+   ```
+
+   Compara cada archivo contra su proyecto, sin contar el formato, y el kit trae solo:
+   - los archivos nuevos o cambiados, con las rutas nuevas al final;
+   - `image-urls.ts` con las URLs que ya tenía, más las claves nuevas;
+   - los assets que faltan, en grupos de 5;
+   - un mensaje para actualizar la conexión al CRM, si se agregaron formularios con otro
+     form ID y su conexión usaba uno solo.
+
+   Nunca reenvía un `lead.ts` ya conectado. Las reglas del mensaje 00 son las de
+   actualización (no borrar páginas que existen), y cada ruta nueva avisa que el error
+   pasajero de TypeScript es normal.
+4. **Guía:** `kit/PASOS.md` es la guía corta de actualización. Al terminar, el alumno
+   publica y te da el ZIP nuevo para `--comparar`, que revisa el sitio completo.
+
 ## Si el sitio no es HTML
 
 Para una app TanStack/React (como la landing de HighLevel Studio, el primer sitio que se
@@ -309,8 +361,9 @@ del flujo es igual.
 
 ## Límites conocidos
 
-- **Una página por migración:** el `index.html` va a la ruta `/`. Los enlaces a otras
-  páginas `.html` del build no existen en AI Studio (el convertidor avisa).
+- **El blog todavía no se migra.** La decisión es un blog conectado: los posts se escriben
+  en el blog de GoHighLevel y el sitio los muestra en `/blog`. Falta una prueba en vivo de
+  su API antes de construirlo.
 - **MP4, WebP y AVIF en el chat:** falta confirmar que los acepte, porque solo se probaron
   JPG y PNG. Si rechaza un formato:
   - **Imagen:** conviértela a JPG o PNG en el build y vuelve a convertir.
@@ -318,8 +371,7 @@ del flujo es igual.
     Si tampoco se puede, deja el poster fijo y avísale qué efecto se pierde.
 
   Anota lo que descubras en las reglas.
-- **Formularios:** todos los de la página comparten una identidad en el CRM. Si necesitan
-  identidades distintas, sepáralos a mano.
+- **Formularios:** si una página tiene dos, el segundo toma el ID de la página con `-2`.
 - **Contenido embebido:** los `<iframe>` y los scripts de terceros funcionan igual que en
   el original, pero la prueba en Chrome los bloquea (nada sale de la máquina). Revísalos
   en la URL publicada.

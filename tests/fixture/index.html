@@ -19,31 +19,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Geist:wght@400;500&display=swap">
 <link rel="stylesheet" href="scrollcraft.css">
+<link rel="stylesheet" href="sitio.css">
 <style>
-  :root {
-    --sc-canvas:     #0b0a09;
-    --sc-surface:    #16130f;
-    --sc-ink:        #f3ede4;
-    --sc-ink-soft:   #a89d8f;
-    --sc-accent:     #e0874f;
-    --sc-accent-ink: #140c07;
-    --sc-font-display: "Archivo", system-ui, sans-serif;
-    --sc-font-text:    "Geist", system-ui, sans-serif;
-  }
-  body > .site-bar {
-    position: fixed; inset: 0 0 auto 0; z-index: 20;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px;
-    background: linear-gradient(var(--sc-canvas), transparent);
-  }
-  .marca { font-family: var(--sc-font-display); font-weight: 800; letter-spacing: .02em; color: var(--sc-ink); text-decoration: none; }
-  .site-bar .cta { padding: 10px 16px; font-size: 14px; }
-  .cta {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 16px 26px; border-radius: 999px;
-    background: var(--sc-accent); color: var(--sc-accent-ink);
-    font: 600 16px/1 var(--sc-font-text); text-decoration: none; border: 0; cursor: pointer;
-  }
   .argument p { font: 600 clamp(28px, 5vw, 64px)/1.08 var(--sc-font-display); max-width: 16ch; }
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 72px); align-items: center; }
   .split img { width: 100%; height: auto; border-radius: 18px; }
@@ -64,7 +41,6 @@
   .foot { position: absolute; inset: auto 0 0 0; padding: 18px 20px calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: space-between; color: var(--sc-ink-soft); font-size: 13px; }
   @media (max-width: 760px) {
     .split { grid-template-columns: 1fr; }
-    .site-bar .cta { display: none; }
   }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"Faro Cerámica"}</script>
@@ -75,7 +51,12 @@
 <div class="sc-grain" aria-hidden="true"></div>
 
 <header class="site-bar">
-  <a class="marca" href="#top">FARO</a>
+  <a class="marca" href="index.html">FARO</a>
+  <nav class="menu" aria-label="Páginas">
+    <a href="nosotros.html">Nosotros</a>
+    <a href="servicios/torno.html">Torno</a>
+    <a href="contacto.html">Contacto</a>
+  </nav>
   <a class="cta" href="#join">Reservar lugar</a>
 </header>
 
