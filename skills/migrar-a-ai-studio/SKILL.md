@@ -181,7 +181,9 @@ Escribe `kit/`, con esto dentro:
 
 Entrégaselo así:
 
-1. Dile dónde está `kit/` y ábrelo.
+1. Dile dónde está `kit/` y ábrelo. Si le pasas cada mensaje por el portapapeles, cópialo en
+   UTF-8 y compruébalo (ver «Copiar los mensajes» en las reglas): sin eso, los acentos y
+   el `·` llegan dañados al código.
 2. Explícale el paso 1 de `PASOS.md` (el respaldo) y el mensaje 00.
 3. Ofrécele acompañarlo mensaje por mensaje. Si el chat de AI Studio responde algo
    distinto de «Listo: …», que te pegue su respuesta: la tabla de `PASOS.md` y las reglas
@@ -364,11 +366,12 @@ del flujo es igual.
 - **El blog todavía no se migra.** La decisión es un blog conectado: los posts se escriben
   en el blog de GoHighLevel y el sitio los muestra en `/blog`. Falta una prueba en vivo de
   su API antes de construirlo.
-- **MP4, WebP y AVIF en el chat:** falta confirmar que los acepte, porque solo se probaron
-  JPG y PNG. Si rechaza un formato:
-  - **Imagen:** conviértela a JPG o PNG en el build y vuelve a convertir.
-  - **Video:** que el alumno lo suba a la Media Library de GHL y pegue su URL en la clave.
-    Si tampoco se puede, deja el poster fijo y avísale qué efecto se pierde.
+- **Videos: siempre por Media Storage.** El chat de AI Studio no acepta MP4 (comprobado).
+  El alumno sube cada video de `kit/videos/` a la Media Storage de GoHighLevel y te da su
+  enlace; tú compruebas que sea el mismo archivo, que tenga CORS y rangos (las reglas dicen
+  cómo), y completas el mensaje `NN-videos-media-storage.md` con esas URL.
+- **WebP y AVIF en el chat:** falta confirmar que los acepte (JPG y PNG sí). Si rechaza uno,
+  conviértelo a JPG o PNG en el build y vuelve a convertir.
 
   Anota lo que descubras en las reglas.
 - **Formularios:** si una página tiene dos, el segundo toma el ID de la página con `-2`.

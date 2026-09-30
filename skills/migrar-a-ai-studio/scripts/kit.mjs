@@ -117,16 +117,18 @@ function mensajeArchivo(n, total, ruta, parte, partes, cuerpo) {
   return `${titulo}\n\n${accion} No lo modifiques. ${fin}\n\n${valla}${fence(ruta)}\n${cuerpo}${cuerpo.endsWith('\n') ? '' : '\n'}${valla}\n`
 }
 
-// images first, then videos in groups of their own: a video the chat refuses never
-// holds an image back
+// the images the chat takes as attachments, in groups of 5. Videos never go through the
+// chat: it refuses MP4 (2026-09-29). They go to GoHighLevel's Media Storage, and one
+// message puts their URLs in the map (see mensajeVideos).
+const esVideo = (i) => i.tipo === 'video'
 function gruposDe(imagenes) {
   const out = []
-  for (const lista of [imagenes.filter((i) => i.tipo !== 'video'), imagenes.filter((i) => i.tipo === 'video')]) {
-    for (let i = 0; i < lista.length; i += ADJUNTOS_POR_MENSAJE) out.push(lista.slice(i, i + ADJUNTOS_POR_MENSAJE))
-  }
+  const lista = imagenes.filter((i) => !esVideo(i))
+  for (let i = 0; i < lista.length; i += ADJUNTOS_POR_MENSAJE) out.push(lista.slice(i, i + ADJUNTOS_POR_MENSAJE))
   return out
 }
 let grupos = gruposDe(M.imagenes || [])
+let videos = (M.imagenes || []).filter(esVideo)
 // the file the student attaches (its name is how the chat knows which key it fills)
 const adjunto = (i) => path.basename(i.archivo)
 const rutaMapa = M.mapaImagenes || 'src/components/pagina/image-urls.ts'
@@ -138,6 +140,16 @@ Te adjunto ${grupos[g].length} archivo(s). No los pongas en ninguna página ni l
 ${grupos[g].map((i) => `- ${adjunto(i)} → clave "${i.clave}"`).join('\n')}
 
 Responde con estas claves y su URL, y «Listo: grupo ${g + 1} de ${grupos.length}».
+`
+// the student uploads each video to Media Storage and gives Claude its URL; Claude
+// checks it (the same bytes, CORS, byte ranges) and fills this message in
+const mensajeVideos = (n, total) => `Mensaje ${String(n).padStart(2, '0')} de ${total} · videos (Media Storage de GoHighLevel)
+
+Los videos ya están subidos en la Media Storage de GoHighLevel, así que no hay nada que adjuntar. En \`${rutaMapa}\` pon estas URL en estas claves, exactamente como están. Cambia SOLO estas claves y deja las demás exactamente como están. No cambies el formato del archivo.
+
+${videos.map((i) => `- clave "${i.clave}" → PEGA_AQUI_LA_URL_DE_${adjunto(i)}`).join('\n')}
+
+Responde con estas claves y su URL tal como quedaron en el archivo, y «Listo: videos».
 `
 const mensajeRevisarImagenes = () => `Muéstrame el contenido completo de \`${rutaMapa}\`, sin cambiarlo. Cada una de las ${(M.imagenes || []).length} claves debe tener una URL que empiece con https://.
 `
@@ -220,7 +232,13 @@ ${TABLA_CHAT}${img ? `
 
 Máximo ${ADJUNTOS_POR_MENSAJE} adjuntos por mensaje: cada grupo tiene su carpeta en \`imagenes/\`.
 
-${grupos.map((g, i) => `${i + 1}. **\`imagenes/grupo-${i + 1}/\`** con \`prompts/${mapa.find((x) => x[1].includes(`grupo${i + 1}de`))?.[1] ?? ''}\`: ${g.map((x) => `\`${adjunto(x)}\``).join(', ')}`).join('\n')}
+${grupos.map((g, i) => `${i + 1}. **\`imagenes/grupo-${i + 1}/\`** con \`prompts/${mapa.find((x) => x[1].includes(`grupo${i + 1}de`))?.[1] ?? ''}\`: ${g.map((x) => `\`${adjunto(x)}\``).join(', ')}`).join('\n')}${videos.length ? `
+
+**Videos (${videos.length}):** el chat de AI Studio no acepta MP4, así que no se adjuntan. Súbelos
+a **Media Storage** de GoHighLevel (Sites › Media Storage), sin cambiarles el nombre:
+${videos.map((i) => `\`videos/${adjunto(i)}\``).join(', ')}. Copia el enlace público de cada uno y dáselo a
+Claude: revisa que sea el mismo archivo y que se pueda reproducir en tu sitio, y te
+completa el mensaje \`${mapa.find((x) => x[1].includes('videos-media-storage'))?.[1] ?? ''}\`.` : ''}
 ` : ''}${form ? `
 ## Paso 5 · Formularios (mensaje ${form})
 
@@ -242,7 +260,7 @@ function guia(mapa, total) {
   return `# Migrar «${M.proyecto}» a tu proyecto nuevo de AI Studio
 
 Guía paso a paso. Tiempo estimado: 30 a 60 minutos. Hazlo desde una computadora: vas a
-copiar y pegar ${total} mensajes${(M.imagenes || []).length ? ` y adjuntar ${M.imagenes.length} archivo(s) en ${grupos.length} grupo(s)` : ''}.
+copiar y pegar ${total} mensajes${grupos.length ? ` y adjuntar ${grupos.flat().length} archivo(s) en ${grupos.length} grupo(s)` : ''}${videos.length ? `, y subir ${videos.length} video(s) a Media Storage` : ''}.
 
 Este kit ya se probó sobre la plantilla de TU proyecto de AI Studio (su configuración,
 su formato de código y su build).
@@ -303,11 +321,13 @@ ${grupos.map((g, i) => `${i + 1}. **\`imagenes/grupo-${i + 1}/\`** con \`prompts
 
 Después pega el mensaje «revisar»: muestra el mapa con las URLs, y todas deben empezar con
 \`https://\`. No les cambies el nombre a los archivos: es lo que el chat usa para saber
-qué URL va en qué clave.${(M.imagenes || []).some((i) => i.tipo === 'video') ? `
+qué URL va en qué clave.${videos.length ? `
 
-**Videos:** si el chat no acepta un MP4, dile a Claude (en Claude Code). Hay dos
-alternativas: subirlo a la Media Library de GHL y pegar su URL en la clave, o dejar la
-imagen fija (poster) de ese momento.` : ''}
+**Videos (${videos.length}):** el chat de AI Studio no acepta MP4, así que no se adjuntan. Súbelos
+a **Media Storage** de GoHighLevel (Sites › Media Storage), sin cambiarles el nombre:
+${videos.map((i) => `\`videos/${adjunto(i)}\``).join(', ')}. Copia el enlace público de cada uno y dáselo a
+Claude: revisa que sea el mismo archivo y que se pueda reproducir en tu sitio, y te
+completa el mensaje \`${mapa.find((x) => x[1].includes('videos-media-storage'))?.[1] ?? ''}\`.` : ''}
 ` : ''}
 ## Paso 5 · La vista previa
 
@@ -437,13 +457,14 @@ async function construir({ desde = null } = {}) {
     }
   }
   grupos = gruposDe(imagenesEnviar)
+  videos = imagenesEnviar.filter(esVideo)
 
   // messages: one file (or part) each, in the manifest's order
   const trozos = aEnviar.flatMap(([ruta, texto]) => {
     const partes = partir(texto, ruta)
     return partes.map((cuerpo, i) => ({ ruta, parte: i + 1, partes: partes.length, cuerpo }))
   })
-  const total = trozos.length + (grupos.length ? 1 : 0) + (conectar ? 1 : 0)
+  const total = trozos.length + (grupos.length || videos.length ? 1 : 0) + (conectar ? 1 : 0)
   const mapa = []
   const mensajes = [['00-reglas.md', (desde ? REGLAS_ACTUALIZAR : REGLAS) + '\n']]
   mapa.push(['00', '00-reglas.md', 'reglas', 'Las reglas: copiar tal cual, un archivo por mensaje'])
@@ -454,12 +475,17 @@ async function construir({ desde = null } = {}) {
     mapa.push([String(n).padStart(2, '0'), nombre, 'archivo', `\`${t.ruta}\`${t.partes > 1 ? ` (parte ${t.parte} de ${t.partes})` : ''}`])
     n++
   }
-  if (grupos.length) {
+  if (grupos.length || videos.length) {
     grupos.forEach((g, i) => {
       const nombre = `${String(n).padStart(2, '0')}-assets-grupo${i + 1}de${grupos.length}.md`
       mensajes.push([nombre, mensajeImagenes(n, total, i)])
       mapa.push([String(n).padStart(2, '0'), nombre, 'imagenes', `Assets, grupo ${i + 1} de ${grupos.length}: adjuntar ${g.map(adjunto).join(', ')}`])
     })
+    if (videos.length) {
+      const nombreV = `${String(n).padStart(2, '0')}-videos-media-storage.md`
+      mensajes.push([nombreV, mensajeVideos(n, total)])
+      mapa.push([String(n).padStart(2, '0'), nombreV, 'imagenes', `Videos: subirlos a Media Storage de GHL (${videos.map(adjunto).join(', ')}) y poner sus URL`])
+    }
     const nombre = `${String(n).padStart(2, '0')}-assets-revisar.md`
     mensajes.push([nombre, mensajeRevisarImagenes()])
     mapa.push([String(n).padStart(2, '0'), nombre, 'imagenes', `Assets: revisar que las ${M.imagenes.length} claves tengan URL`])
@@ -505,6 +531,11 @@ ${aEnviar.map(([ruta, texto]) => `| \`${ruta}\` | ${reformateable(ruta) ? 'solo 
     fs.mkdirSync(dir, { recursive: true })
     for (const i of g) fs.copyFileSync(i.archivo, path.join(dir, adjunto(i)))
   })
+  // the videos, to upload to Media Storage (never attached in the chat)
+  if (videos.length) {
+    fs.mkdirSync(path.join(KIT, 'videos'), { recursive: true })
+    for (const i of videos) fs.copyFileSync(i.archivo, path.join(KIT, 'videos', adjunto(i)))
+  }
 
   escribir(path.join(KIT, 'PASOS.md'), desde ? guiaActualizacion(mapa, mensajes.length - 1, resumen) : guia(mapa, mensajes.length - 1))
   escribir(

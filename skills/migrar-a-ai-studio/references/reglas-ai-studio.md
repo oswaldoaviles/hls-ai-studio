@@ -23,7 +23,14 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 | Cuando falta un archivo que otro importa, **intenta arreglar el build por su cuenta**: reescribe archivos, inventa implementaciones, cambia títulos, agrega elementos que no estaban. | Orden de envío: primero las dependencias; las rutas y el root **al final**, para que nada se compile a medias. El mensaje de reglas le prohíbe implementar o borrar archivos por su cuenta. Si ofrece «impleméntalos tú», la respuesta es siempre «te los paso ahora». |
 | Al crear una ruta nueva, TypeScript marca un error unos segundos (`not assignable to parameter of type "/"`) hasta que `routeTree.gen.ts` se regenera. El chat **borró la ruta** para «arreglarlo». | Usar solo `/` (la ruta que ya trae la plantilla). Si hace falta otra ruta, el mensaje avisa que ese error es normal y prohíbe borrarla. |
 | Reformatea con su Prettier el CSS y el JS (el CSS compacto pasó de 1,043 a 2,760 líneas). | Normal e inofensivo. El kit entrega el TypeScript ya formateado con el `.prettierrc` de la plantilla, y la comparación final ignora el formato. El conteo de líneas de esos archivos no se usa para verificar. |
-| Responde «Listo» aunque haya hecho algo distinto. | Verificar con `verificar-lineas.md` durante el proceso y con el ZIP al final (`kit.mjs --comparar`). |
+| Responde «Listo» aunque haya hecho algo distinto. **También responde «Listo» sin crear el archivo** (29 de septiembre de 2026: 39 de 85 archivos no existían en el ZIP, y 5 más en la segunda pasada). | Verificar con `verificar-lineas.md` cada 15 mensajes, no solo al final, y con el ZIP (`kit.mjs --comparar`). Pedirle en cada mensaje que copie la primera línea del archivo tal como quedó (la última en las partes que se agregan): si no coincide, no lo creó. |
+| Cuando la compilación falla a medias, ofrece «Try to fix» y el chat cambia archivos por su cuenta (cambió textos de una página que no se le mandó). | Decirle al alumno que **nunca** pulse «Try to fix»: los errores a medias son normales hasta el último archivo. |
+
+## Copiar los mensajes (del lado de Claude)
+
+| Regla | Remedio |
+|---|---|
+| En macOS, `pbcopy` sin `LANG` copia el texto como MacRoman: al pegarlo, cada `·`, acento, `ñ` y `¿` llega dañado (`·` → `¬∑`, «Política» → «Pol√≠tica»), dentro del código. | Copiar siempre con `LANG=en_US.UTF-8 pbcopy < mensaje.md` (fuera del sandbox) y comprobar con `LANG=en_US.UTF-8 pbpaste \| cmp - mensaje.md` antes de decirle al alumno que pegue. |
 
 ## La plantilla de un proyecto nuevo (`.vibe/project.json` → `tanstack_start_ts`)
 
@@ -62,9 +69,11 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 
 | Regla | Remedio |
 |---|---|
-| El chat acepta **máximo 5 adjuntos por mensaje**. | Grupos de 5, cada uno en su carpeta (`imagenes/grupo-N/`), con los videos en grupos aparte. Cada grupo llena solo sus claves de `image-urls.ts`, y un mensaje final muestra el archivo completo para revisar. |
+| El chat acepta **máximo 5 adjuntos por mensaje**. | Grupos de 5 imágenes, cada uno en su carpeta (`imagenes/grupo-N/`). Cada grupo llena solo sus claves de `image-urls.ts`, y un mensaje final muestra el archivo completo para revisar. |
 | Las imágenes subidas se alojan en `https://vibe.filesafe.space/<id>/attachments/<uuid>.<ext>`, con `Access-Control-Allow-Origin: *`, rangos de bytes y caché de un año. | Sirven para `<img>` y para el `fetch()` del motor de scroll. Al final se descarga cada URL y se compara byte por byte con la local. |
-| JPG y PNG se aceptan. AVIF y WebP no se probaron; MP4 tampoco. | Si un formato no se acepta, convertirlo a JPG/PNG. Para MP4 (scrub): probar en la primera migración; si no se acepta, subirlo a la Media Library de GHL y pegar la URL, o dejar el poster fijo avisando qué efecto se pierde. |
+| JPG y PNG se aceptan. AVIF y WebP no se probaron. | Si un formato no se acepta, convertirlo a JPG/PNG. |
+| **El chat NO acepta MP4** (comprobado el 29 de septiembre de 2026, con los videos del Home de HighLevel Studio). | **Los videos van siempre por la Media Storage de GoHighLevel** (Sites › Media Storage), nunca como adjunto del chat. El alumno los sube sin cambiarles el nombre y te da el enlace público de cada uno; `kit/videos/` los trae y el mensaje `NN-videos-media-storage.md` pone esas URL en sus claves (reemplaza cada `PEGA_AQUI_LA_URL_DE_…` antes de dárselo). |
+| Media Storage sirve el MP4 en `https://assets.cdn.filesafe.space/<location>/media/<id>.mp4` con `Access-Control-Allow-Origin: *`, rangos de bytes (206) y caché de un año, byte por byte igual al subido. | Sirve para el `fetch()` del scrub del motor. Antes de dar el mensaje, compruébalo con cada enlace: `curl -s <url> \| shasum -a 256` igual al archivo local, `curl -sI -H "Origin: https://<dominio>" <url>` con `access-control-allow-origin`, y `curl -s -o /dev/null -w "%{http_code}" -H "Range: bytes=0-99" <url>` = 206. Los nombres de Media Storage no dicen cuál es cuál: identifícalos por el `shasum`. |
 | Los nombres de archivo son lo único que el chat usa para saber qué URL va en qué clave. | No renombrar las imágenes; las claves del mapa son el nombre de archivo completo. |
 
 ## Formularios (los nativos de AI Studio)
