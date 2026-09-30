@@ -193,6 +193,12 @@ Si el alumno tiene conexión con Git o GitHub en su proyecto (el `AGENTS.md` de 
 plantilla la menciona), esa vía es más exacta que el chat: los archivos de `kit/archivos/`
 se suben tal cual. Úsala si la tiene.
 
+Si el chat deja archivos sin crear o los reescribe (lo detecta `--comparar`), no insistas
+por el chat: corrige con el editor **Code**, que es exacto. Code edita pero no crea
+archivos, así que para cada archivo que falta el chat crea primero uno vacío, con una sola
+línea de comentario, y luego el alumno pega el contenido real en Code. Nunca uses «Try to
+fix».
+
 ### 6. Revisar el ZIP de AI Studio
 
 Cuando el alumno termine los mensajes (o cuando algo no cuadre), pídele el ZIP (**Code →
