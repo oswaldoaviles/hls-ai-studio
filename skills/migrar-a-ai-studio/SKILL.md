@@ -278,8 +278,9 @@ plantilla («AI Studio», «AI Studio Generated Project»).
 
 ### 9. Antes de salir a producción (con el alumno)
 
-- **Lead real:** que se registre con su correo y lo vea en **Contactos** y en
-  **Sites › Forms › Submissions › External Forms**.
+- **Lead real, uno por formulario:** que envíe **cada** formulario con su correo y lo vea en
+  **Contactos** y en **Sites › Forms › Submissions › External Forms**. Un formulario no
+  aparece ahí ni en la lista del disparador del workflow hasta su primer envío real.
 - **Workflows:** los que dependen del formulario necesitan el nuevo en su disparador
   («AI Studio Form Submitted» o «External Tracking Event»). Que haga otro lead y confirme
   que corren.
