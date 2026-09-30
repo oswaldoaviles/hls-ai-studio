@@ -34,9 +34,11 @@ this skill»). Los scripts están en `<skill>/scripts/`.
   descarga el ZIP y te pasa la URL.
 - Dile siempre dónde está cada cosa, con su ruta completa. En macOS ofrece abrir la
   carpeta con `open <carpeta>`.
-- Si el alumno no sabe abrir o copiar un `.md`, dale el mensaje directo en el chat, en
-  un bloque de código que pueda copiar. Uno a la vez: el siguiente cuando te diga qué
-  respondió AI Studio.
+- **Tú le pones cada mensaje en el portapapeles**, ya en UTF-8 y comprobado, con
+  `copiar.mjs` (ver [El kit](#5-el-kit)): el alumno solo pega (Cmd/Ctrl + V) y te dice
+  «siguiente». Uno a la vez: el siguiente cuando te diga qué respondió AI Studio. No le
+  pidas abrir los `.md` ni copiarlos él: sin UTF-8, los acentos y el `·` llegan dañados al
+  código.
 - Nunca le digas que algo quedó si no lo verificaste con los scripts o con el ZIP.
 
 ## Flujo
@@ -181,11 +183,21 @@ Escribe `kit/`, con esto dentro:
 
 Entrégaselo así:
 
-1. Dile dónde está `kit/` y ábrelo. Si le pasas cada mensaje por el portapapeles, cópialo en
-   UTF-8 y compruébalo (ver «Copiar los mensajes» en las reglas): sin eso, los acentos y
-   el `·` llegan dañados al código.
-2. Explícale el paso 1 de `PASOS.md` (el respaldo) y el mensaje 00.
-3. Ofrécele acompañarlo mensaje por mensaje. Si el chat de AI Studio responde algo
+1. Dile dónde está `kit/` y ábrelo (lo necesita para las carpetas de `imagenes/` y `videos/`).
+2. **Cada mensaje se lo pones tú en el portapapeles:**
+
+   ```bash
+   node <skill>/scripts/copiar.mjs            # el mensaje siguiente (recuerda por cuál va)
+   node <skill>/scripts/copiar.mjs 07         # uno en particular
+   node <skill>/scripts/copiar.mjs <archivo>  # una corrección o un archivo para el editor Code
+   ```
+
+   Copia en UTF-8, lee el portapapeles de vuelta y solo dice ✓ si quedó idéntico al
+   archivo. Imprime qué es el mensaje y la respuesta esperada del chat: díselas al alumno,
+   con la carpeta de adjuntos si el mensaje la lleva. En macOS corre fuera del sandbox (el
+   portapapeles es el del alumno); si sale ✗, no le digas que pegue.
+3. Explícale el paso 1 de `PASOS.md` (el respaldo) y cópiale el mensaje 00.
+4. Acompáñalo mensaje por mensaje. Si el chat de AI Studio responde algo
    distinto de «Listo: …», que te pegue su respuesta: la tabla de `PASOS.md` y las reglas
    dicen qué contestar.
 

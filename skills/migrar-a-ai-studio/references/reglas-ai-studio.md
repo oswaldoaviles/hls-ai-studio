@@ -33,7 +33,7 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 
 | Regla | Remedio |
 |---|---|
-| En macOS, `pbcopy` sin `LANG` copia el texto como MacRoman: al pegarlo, cada `·`, acento, `ñ` y `¿` llega dañado (`·` → `¬∑`, «Política» → «Pol√≠tica»), dentro del código. | Copiar siempre con `LANG=en_US.UTF-8 pbcopy < mensaje.md` (fuera del sandbox) y comprobar con `LANG=en_US.UTF-8 pbpaste \| cmp - mensaje.md` antes de decirle al alumno que pegue. |
+| En macOS, `pbcopy` sin `LANG` copia el texto como MacRoman: al pegarlo, cada `·`, acento, `ñ` y `¿` llega dañado (`·` → `¬∑`, «Política» → «Pol√≠tica»), dentro del código. | Copiar siempre con `scripts/copiar.mjs` (fuera del sandbox): pone el mensaje en UTF-8, lo lee de vuelta y solo dice ✓ si quedó idéntico. Es la forma normal de entregar cada mensaje: el alumno pega y dice «siguiente». |
 
 ## La plantilla de un proyecto nuevo (`.vibe/project.json` → `tanstack_start_ts`)
 

@@ -1,7 +1,7 @@
 {
   "name": "hls-ai-studio",
   "description": "Para los sitios hechos con scroll-craft: les agrega páginas (contacto, nosotros, servicios) con la misma marca del home y los migra completos a GoHighLevel AI Studio, con los mensajes para su chat, las imágenes en grupos de 5, una guía en español y la verificación final.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": {
     "name": "Oswaldo Avilés · HighLevel Studio"
   },

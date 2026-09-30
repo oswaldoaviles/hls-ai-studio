@@ -210,8 +210,10 @@ ${r.paginas.length ? `Páginas nuevas: ${r.paginas.map((x) => `\`${x}\``).join('
 |---|---|---|
 ${mapa.map(([num, nombre, , desc]) => `| ${num} | \`prompts/${nombre}\` | ${desc} |`).join('\n')}
 
-Cómo copiar un mensaje: ábrelo, selecciona todo (Cmd/Ctrl + A), copia (Cmd/Ctrl + C) y
-pégalo en el chat de AI Studio. **Un mensaje a la vez**: espera la respuesta antes del siguiente.
+Cómo copiar un mensaje: dile a Claude «siguiente» y te lo pone en el portapapeles, ya
+comprobado; tú solo lo pegas (Cmd/Ctrl + V) en el chat de AI Studio. No los copies tú desde
+el archivo: los acentos pueden llegar dañados. **Un mensaje a la vez**: espera la respuesta
+antes del siguiente.
 
 ## Paso 1 · Respaldo
 
@@ -283,10 +285,10 @@ su formato de código y su build).
 |---|---|---|
 ${mapa.map(([num, nombre, , desc]) => `| ${num} | \`prompts/${nombre}\` | ${desc} |`).join('\n')}
 
-Cómo copiar un mensaje: ábrelo (doble clic lo abre en tu editor de texto), selecciona todo
-(Cmd/Ctrl + A), copia (Cmd/Ctrl + C) y pégalo en el chat de AI Studio. Pega siempre el
-archivo completo, del título al final del bloque de código. **Un mensaje a la vez**:
-espera la respuesta antes de mandar el siguiente.
+Cómo copiar un mensaje: dile a Claude «siguiente» y te lo pone en el portapapeles, ya
+comprobado; tú solo lo pegas (Cmd/Ctrl + V) en el chat de AI Studio. No los copies tú desde
+el archivo: los acentos pueden llegar dañados. **Un mensaje a la vez**: espera la respuesta
+antes de mandar el siguiente.
 
 ---
 
