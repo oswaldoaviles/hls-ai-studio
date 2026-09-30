@@ -366,6 +366,12 @@ del flujo es igual.
      lado.
 
 3. Corre `validar.mjs` y `kit.mjs` como arriba.
+   - En `paginas` van solo las rutas que usan el motor de scroll-craft: `validar.mjs` espera
+     `html.sc-ready` y `data-sc-act`. Las páginas sin motor (blog, contacto) y las `noindex`
+     (validar las marcaría como error de SEO) se prueban aparte, sobre el mismo
+     `.validar/proyecto`.
+   - Si otra conversación edita el mismo build, `kit.mjs --desde` también trae sus cambios:
+     revisa la lista antes de mandarla y deja fuera lo que no es de esta tarea.
 
 ## Límites conocidos
 

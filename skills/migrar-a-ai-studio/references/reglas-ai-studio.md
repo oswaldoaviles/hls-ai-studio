@@ -11,6 +11,7 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 | AI Studio **no importa ZIP**, solo lo exporta (Code → Download Codebase, o Project Settings → Download Codebase). | El código entra por el chat (o, si el alumno tiene el botón **Code**, pegándolo en su editor). El ZIP se usa solo para leer la plantilla y para verificar al final. |
 | La integración con GitHub aparecía como «planned», pero el `AGENTS.md` de la plantilla ya dice que los commits a la rama conectada se sincronizan con AI Studio. | Si el alumno ve una opción de GitHub o Git en su proyecto, esa vía es más exacta que el chat: avísale y usa `kit/archivos/`. |
 | El editor **Code** de AI Studio deja **editar** archivos que ya existen (pegar su contenido completo), pero **no crear** archivos nuevos (comprobado el 29 de septiembre de 2026). Tampoco hay conexión a GitHub para ese proyecto. | Es la vía exacta para corregir: el alumno abre el archivo, Cmd + A, pega el contenido de `kit/archivos/` y guarda; nada pasa por el chat. Para un archivo que no existe: el chat lo crea **vacío**, con una sola línea de comentario (un mensaje por archivo), y luego el alumno pega el contenido real en Code. |
+| **Publish / Update** puede fallar sin explicación, o publicar una versión anterior a la que se ve en la vista previa (pasó dos veces el 30 de septiembre de 2026). | Si la vista previa está bien, reintentar la publicación. Confirmar siempre en la URL publicada (no en la vista previa) con `probar-preview.mjs` o un `curl` de cada ruta. |
 | AI Studio compila solo cada vez que cambia un archivo. | No hace falta pedir «compila». La vista previa ya refleja el código… |
 | …pero la URL pública `…vibepreview.app` puede quedarse en la última versión publicada. | Después de cambios importantes (sobre todo al conectar el formulario), pedir al alumno que vuelva a publicar (Publish / Update) antes de probar la URL. |
 
@@ -25,6 +26,7 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 | Al crear una ruta nueva, TypeScript marca un error unos segundos (`not assignable to parameter of type "/"`) hasta que `routeTree.gen.ts` se regenera. El chat **borró la ruta** para «arreglarlo». | Usar solo `/` (la ruta que ya trae la plantilla). Si hace falta otra ruta, el mensaje avisa que ese error es normal y prohíbe borrarla. |
 | Reformatea con su Prettier el CSS y el JS (el CSS compacto pasó de 1,043 a 2,760 líneas). | Normal e inofensivo. El kit entrega el TypeScript ya formateado con el `.prettierrc` de la plantilla, y la comparación final ignora el formato. El conteo de líneas de esos archivos no se usa para verificar. |
 | Responde «Listo» aunque haya hecho algo distinto. **También responde «Listo» sin crear el archivo** (29 de septiembre de 2026: 39 de 85 archivos no existían en el ZIP, y 5 más en la segunda pasada). | Verificar con `verificar-lineas.md` cada 15 mensajes, no solo al final, y con el ZIP (`kit.mjs --comparar`). Pedirle en cada mensaje que copie la primera línea del archivo tal como quedó (la última en las partes que se agregan): si no coincide, no lo creó. |
+| Para «arreglar» la compilación, el chat **renombró rutas con un guion al inicio** (`src/routes/-club.tsx`): TanStack ignora esos archivos, así que la página da 404 aunque su contenido esté bien (30 de septiembre de 2026). `--comparar` las marca como «falta». | Si falta una ruta, busca en el ZIP el mismo nombre con `-` delante. Si su contenido coincide, pídele al chat solo que la renombre (un mensaje por archivo, «no cambies su contenido»). |
 | Cuando la compilación falla a medias, ofrece «Try to fix» y el chat cambia archivos por su cuenta (cambió textos de una página que no se le mandó). | Decirle al alumno que **nunca** pulse «Try to fix»: los errores a medias son normales hasta el último archivo. |
 
 ## Copiar los mensajes (del lado de Claude)
@@ -58,6 +60,13 @@ aplica. Si AI Studio cambia y una regla deja de ser cierta, actualízala aquí.
 | Una ruta nueva marca un error de TypeScript unos segundos, hasta que se regenera `routeTree.gen.ts`. | El mensaje de cada ruta nueva avisa que es normal y prohíbe borrarla. |
 | Al actualizar un sitio, reenviar todo cuesta muchos mensajes y arriesga lo que ya funciona (las URLs de las imágenes, la conexión al CRM). | `kit.mjs --desde <ZIP actual>` manda solo lo nuevo o cambiado: conserva las URLs y nunca reenvía un `lead.ts` conectado. |
 | Cada formulario del sitio necesita su propio form ID. | `sendLeadToCrm(campos, formId)` recibe el de cada formulario. Si la conexión existente usaba uno fijo, el kit incremental pide actualizarla. |
+
+## Sitios de varias páginas: el scroll
+
+| Regla | Remedio |
+|---|---|
+| `scrollcraft.css` pone `scroll-behavior: smooth` en `html`. En un sitio de varias páginas, al cambiar de ruta el router vuelve al inicio y el navegador **anima** ese recorrido: se ve toda la página subir (el dueño lo notó y no le gustó). | La hoja del sitio lo anula, sin tocar el motor: `html:has(<clase del marco del sitio>) { scroll-behavior: auto; }`. |
+| Un enlace a una sección de otra página (`/#sobre-mi`) cae antes de la sección: el navegador salta antes de que el motor fije los actos y la página crezca (en HighLevel Studio, 2,240 px antes). | Después de montar el motor, si hay `location.hash`, volver a saltar a esa sección (`scrollIntoView` en dos `requestAnimationFrame` y otra vez a los ~700 ms). |
 
 ## Los scripts de la página
 
