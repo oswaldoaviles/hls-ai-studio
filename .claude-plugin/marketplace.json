@@ -4,13 +4,13 @@
     "name": "Oswaldo Avilés · HighLevel Studio"
   },
   "metadata": {
-    "description": "Herramientas de HighLevel Studio para alumnos: llevar sitios hechos con Claude a GoHighLevel AI Studio."
+    "description": "Herramientas de HighLevel Studio para alumnos: publicar sitios hechos con Claude en GoHighLevel AI Studio o en Vercel, conectados al CRM."
   },
   "plugins": [
     {
       "name": "hls-ai-studio",
       "source": "./",
-      "description": "Agrega páginas a los sitios hechos con scroll-craft y los migra a AI Studio, con mensajes listos para su chat y verificación final."
+      "description": "Agrega páginas a los sitios hechos con scroll-craft y los publica en AI Studio o en Vercel, con los formularios conectados a GoHighLevel y verificación final."
     }
   ]
 }

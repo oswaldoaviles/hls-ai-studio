@@ -1,8 +1,9 @@
 # Mis sitios · instrucciones para Claude
 
 Esta carpeta es el espacio de trabajo de un alumno de HighLevel Studio. Aquí crea sus
-sitios con **scroll-craft**, les agrega páginas con **agregar-pagina** y los pasa a
-**GoHighLevel AI Studio** con **migrar-a-ai-studio**. Para muchos alumnos es su primera vez con Claude Code.
+sitios con **scroll-craft**, les agrega páginas con **agregar-pagina** y los publica con
+**migrar-a-ai-studio** (en GoHighLevel AI Studio) o con **publicar-en-vercel** (en Vercel,
+con sus formularios conectados a GoHighLevel). Para muchos alumnos es su primera vez con Claude Code.
 
 ## Cómo hablarle
 
@@ -14,8 +15,11 @@ sitios con **scroll-craft**, les agrega páginas con **agregar-pagina** y los pa
 ## Al empezar, o cuando diga «Prepara mi carpeta»
 
 1. Revisa que tengas las skills `nateherk-design:scroll-craft`,
-   `hls-ai-studio:agregar-pagina` y `hls-ai-studio:migrar-a-ai-studio`. Aparecen entre tus
-   skills disponibles.
+   `hls-ai-studio:agregar-pagina`, `hls-ai-studio:migrar-a-ai-studio` y
+   `hls-ai-studio:publicar-en-vercel`. Aparecen entre tus skills disponibles. Si falta solo
+   `publicar-en-vercel`, el plugin está viejo: actualízalo con
+   `<claude> plugin marketplace update highlevel-studio` y
+   `<claude> plugin update hls-ai-studio@highlevel-studio`.
 2. Si falta alguna, instálala para su usuario, así funciona en todas sus carpetas.
    - **Busca el programa `claude`**, en este orden:
      1. `claude`, si está en el PATH;
@@ -51,8 +55,22 @@ sitios con **scroll-craft**, les agrega páginas con **agregar-pagina** y los pa
   (lo fija `.scrollcraft.json`, aunque se abra una subcarpeta).
 - **Agregar páginas** (contacto, nosotros, servicios): usa agregar-pagina. Sigue la marca
   del sitio, que está en su `MARCA.md`.
+- **Publicarlo:** cuando diga que quiere publicar su sitio y no haya dicho dónde, pregúntale
+  con esta tabla y que él elija:
+
+  | | AI Studio | Vercel |
+  |---|---|---|
+  | Dónde vive el sitio | Dentro de GoHighLevel | En Vercel, con su dominio |
+  | Cómo se sube | Pegando mensajes en el chat de AI Studio | Claude lo publica con un comando |
+  | Formularios al CRM | Sí | Sí, con el mismo seguimiento y la API de conversiones |
+  | Cambios después | Otra ronda de mensajes en el chat | «Publica los cambios» |
+  | Costo | Incluido en su plan de GHL | Vercel Pro para un sitio de negocio |
+
+  Puede cambiar de camino después: su sitio original no se toca.
 - **Pasarlo a AI Studio:** usa migrar-a-ai-studio. Su espacio de trabajo va junto al sitio,
   en `scrollcraft/builds/<nombre>-ai-studio/`.
+- **Publicarlo en Vercel:** usa publicar-en-vercel. Su espacio va junto al sitio, en
+  `scrollcraft/builds/<nombre>-vercel/`. Para los cambios, «publica los cambios».
 - **Los ZIP de AI Studio** suelen estar en la carpeta Descargas del alumno.
 - **No borres ni muevas** nada de `scrollcraft/builds/` sin preguntarle: ahí están sus
   sitios.

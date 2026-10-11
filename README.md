@@ -1,13 +1,20 @@
 # hls-ai-studio
 
-Plugin de Claude Code de **HighLevel Studio** para llevar a **GoHighLevel AI Studio** los
-sitios que hiciste con el skill **scroll-craft**, con todas sus páginas.
+Plugin de Claude Code de **HighLevel Studio** para publicar los sitios que hiciste con el
+skill **scroll-craft**, con todas sus páginas, en **GoHighLevel AI Studio** o en **Vercel**,
+siempre con los formularios conectados a tu CRM.
 
-Trae dos skills:
+Trae tres skills:
 
 - **`agregar-pagina`**: le agrega páginas a tu sitio (contacto, nosotros, cada servicio)
   con la misma marca de tu home.
 - **`migrar-a-ai-studio`**: pasa el sitio completo a tu proyecto de AI Studio.
+- **`publicar-en-vercel`**: lo publica en Vercel, con tu dominio. Sus formularios llegan a
+  GoHighLevel igual que desde AI Studio, con la atribución de tus UTM, los datos para la
+  API de conversiones de Meta y los eventos de Tag Manager (ver
+  [Publicar en Vercel](#publicar-en-vercel)).
+
+Lo que sigue explica el camino de AI Studio.
 
 AI Studio no importa archivos ZIP: todo entra por su chat. Si le pasas el código sin
 guía, su chat lo cambia por su cuenta. Este plugin hace el trabajo difícil antes de que
@@ -82,6 +89,7 @@ Abre la carpeta «Mis sitios» en Claude Code y pide lo que quieras:
 - **Agregarle una página:** «En el sitio `<nombre>`, crea la página de contacto».
 - **Pasarlo a AI Studio:** «Migra mi sitio a AI Studio. El ZIP de mi proyecto en blanco
   está en Descargas.»
+- **Publicarlo en Vercel:** «Publica mi sitio en Vercel». Después: «publica los cambios».
 
 Usa **una conversación nueva por tarea**: una para crear el home y otra por cada página.
 En esa misma conversación ajustas lo que haga falta. Todo queda guardado en los archivos
@@ -139,12 +147,39 @@ Descarga el ZIP actual de tu proyecto (**Code → Download Codebase**) y pide **
 páginas nuevas a AI Studio»**. El kit trae **solo lo nuevo o cambiado**: tus imágenes ya
 subidas y tu conexión al CRM se conservan.
 
+## Publicar en Vercel
+
+Es el camino sin AI Studio: Claude publica tu sitio tal cual en Vercel y le agrega un
+script de seguimiento (`seguimiento.js`). Tu sitio original no cambia, así que puedes
+pasarlo a AI Studio después.
+
+1. **Te pide tres datos de tu subcuenta:**
+   - el Location ID;
+   - el Tracking ID (*Settings → External Tracking*, solo el `tk_…`);
+   - tu contenedor de Tag Manager, si tienes.
+2. **Conecta cada formulario.**
+   - Manda el registro completo y uno parcial, en cuanto el visitante deja su correo o su
+     teléfono.
+   - Manda la visita de cada página. Sin ella, GoHighLevel pierde el `utm_campaign` del
+     contacto.
+3. **Lo prueba en tu compu** en escritorio y en teléfono. Llena cada formulario sin mandar
+   nada y te enseña lo que llegaría a tu CRM.
+4. **Lo publica** en `<proyecto>.vercel.app`, sin que Google lo indexe, y lo vuelve a
+   probar ahí.
+5. **Tú envías un lead real de prueba** y revisas el contacto en GoHighLevel.
+6. **Conecta tu dominio.** Te dice exactamente qué dos registros cambiar en tu proveedor
+   (Cloudflare, GoDaddy, Hostinger…) y cuáles no tocar: correo y subdominios de GHL. Luego
+   revisa el certificado y las redirecciones.
+
+Necesitas una cuenta de **Vercel**. El plan gratis (Hobby) es solo para uso personal; un
+sitio de negocio va en **Pro**.
+
 ## Actualizaciones
 
 Cuando este plugin (o scroll-craft) publica una versión nueva, tu Claude Code la descarga
 solo, en segundo plano. A lo mucho te pide escribir `/reload-plugins`.
 
-## Antes de publicar en tu dominio
+## Antes de publicar en tu dominio (AI Studio)
 
 - **Lead de prueba real:** regístrate con tu correo en la vista previa y revisa que el
   contacto llegue a **Contactos** y a **Sites › Forms › Submissions › External Forms**.
