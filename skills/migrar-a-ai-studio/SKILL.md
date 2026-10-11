@@ -296,6 +296,12 @@ plantilla («AI Studio», «AI Studio Generated Project»).
 - **Workflows:** los que dependen del formulario necesitan el nuevo en su disparador
   («AI Studio Form Submitted» o «External Tracking Event»). Que haga otro lead y confirme
   que corren.
+- **Atribución con UTMs:** que envíe un lead abriendo la página con
+  `?utm_source=prueba&utm_medium=prueba&utm_campaign=prueba&utm_content=prueba` y revise en
+  el contacto la *First Session Attribution* (o sus campos FIRST UTM …). Si el campaign sale
+  vacío y el resto no, falta la visita de página con la misma sesión: los formularios de
+  AI Studio solo mandan el registro y GHL pierde el `utm_campaign` (ver «Formularios» en
+  las reglas, con la solución).
 
 ## Actualizar un sitio que ya está en AI Studio
 
