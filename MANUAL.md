@@ -2,6 +2,8 @@
 
 **HighLevel Studio.** De una carpeta vacía a tu sitio publicado, en AI Studio o en Vercel.
 
+Versión web: https://vault.thehighlevelstudio.com/mis-sitios
+
 En esta fase:
 
 1. instalas tu carpeta de trabajo, «Mis sitios», una sola vez;

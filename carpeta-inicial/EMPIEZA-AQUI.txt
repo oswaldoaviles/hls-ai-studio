@@ -10,4 +10,4 @@ MIS SITIOS · HighLevel Studio
    Para publicarlo en Vercel: "Publica mi sitio en Vercel"
    Una conversación nueva para cada tarea.
 
-Manual completo: https://github.com/oswaldoaviles/hls-ai-studio/blob/main/MANUAL.md
+Manual completo: https://vault.thehighlevelstudio.com/mis-sitios
