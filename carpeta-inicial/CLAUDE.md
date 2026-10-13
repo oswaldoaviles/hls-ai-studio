@@ -23,9 +23,11 @@ con sus formularios conectados a GoHighLevel). Para muchos alumnos es su primera
 2. Si falta alguna, instálala para su usuario, así funciona en todas sus carpetas.
    - **Busca el programa `claude`**, en este orden:
      1. `claude`, si está en el PATH;
-     2. en Mac, el que trae la app:
-        `~/Library/Application Support/Claude/claude-code/<versión>/claude.app/Contents/MacOS/claude`
-        (usa la versión más reciente);
+     2. en Mac, el que trae la app, en
+        `~/Library/Application Support/Claude/claude-code/<versión>/`: búscalo con
+        `find ~/Library/Application\ Support/Claude/claude-code -path '*claude.app/Contents/MacOS/claude'`
+        (puede haber una carpeta intermedia, como `2.1.295/9d6405864fdc/`) y usa la versión más
+        reciente. No uses el de `claude-code-vm`: es de Linux;
      3. si no hay ninguno, `npx -y @anthropic-ai/claude-code` (necesita Node.js).
    - **Instala con ese programa:**
 
