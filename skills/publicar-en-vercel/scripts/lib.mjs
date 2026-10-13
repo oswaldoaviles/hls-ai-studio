@@ -72,9 +72,11 @@ export const dominioLimpio = (d) =>
 
 // ---- the site's files ----------------------------------------------------------------
 
-// Never published: scroll-craft's working folders, notes, packages, secrets.
+// Never published: scroll-craft's working folders, the student's raw materials (insumos),
+// notes, packages, secrets.
 const FUERA = new Set([
   'node_modules', 'lab', 'out', 'prompts', 'tools', 'originales', 'source', 'fuentes-originales',
+  'insumos', 'materiales',
   '.git', '.vercel', '.claude', '.github', '.vscode', '.DS_Store', 'Thumbs.db',
   'package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock',
   '.gitignore', '.vercelignore', 'vercel.json', '.scrollcraft.json',

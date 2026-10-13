@@ -282,7 +282,7 @@ node <skill>/scripts/probar.mjs --url <dominio o dirección de Vercel>
 | `formularios[]` | uno por `<form>`, ver abajo |
 | `campos` | `{"clave del formulario": "ID del campo personalizado en GHL"}` |
 | `redirecciones[]` | `{"desde": "/viejo", "hacia": "/nuevo"}`: las direcciones de su sitio anterior |
-| `excluir[]` | archivos o carpetas del sitio que no se publican |
+| `excluir[]` | archivos o carpetas del sitio que no se publican, además de los que nunca se publican: `insumos/`, `materiales/`, `lab/`, `out/`, `prompts/`, `tools/`, notas `.md` y paquetes |
 
 Los campos de cada formulario:
 

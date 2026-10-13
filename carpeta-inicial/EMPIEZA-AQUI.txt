@@ -7,6 +7,7 @@ MIS SITIOS · HighLevel Studio
 5. Listo. Para crear un sitio: "Hazme la página principal de ..."
    Para agregarle una página: "En el sitio ..., crea la página de contacto"
    Para pasarlo a AI Studio: "Migra mi sitio a AI Studio"
+   Para publicarlo en Vercel: "Publica mi sitio en Vercel"
    Una conversación nueva para cada tarea.
 
-Manual completo: https://claude.ai/artifact/PDu8xQVHPH7kJCgbhANxNU
+Manual completo: https://github.com/oswaldoaviles/hls-ai-studio/blob/main/MANUAL.md

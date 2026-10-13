@@ -45,6 +45,9 @@ con sus formularios conectados a GoHighLevel). Para muchos alumnos es su primera
    - **ffmpeg:**
      - en Mac, `brew install ffmpeg` (si no tiene Homebrew, primero instálalo desde brew.sh);
      - en Windows, `winget install Gyan.FFmpeg`.
+4. **Clave de kie.ai** (opcional): sin ella, scroll-craft trabaja solo con sus fotos. Si te la
+   da, guárdala en el archivo `.env` de esta carpeta como `KIE_AI_API_KEY=<clave>`, que es de
+   donde la lee scroll-craft. No la repitas en el chat ni la pongas en ningún sitio.
 
 ## El trabajo
 

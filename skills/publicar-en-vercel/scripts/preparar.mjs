@@ -209,6 +209,10 @@ export function preparar(ws = ESPACIO, { silencioso = false } = {}) {
   for (const e of fs.readdirSync(salida)) if (e !== '.vercel' && !e.startsWith('.env')) fs.rmSync(path.join(salida, e), { recursive: true, force: true })
 
   const archivos = archivosDelSitio(sitio, c.excluir)
+  for (const rel of archivos) {
+    const mb = fs.statSync(path.join(sitio, rel)).size / 1048576
+    if (mb > 25) avisos.push(`${rel} pesa ${mb.toFixed(0)} MB: comprímelo o ponlo en "excluir" si no es parte del sitio. Vercel no acepta archivos de más de 100 MB.`)
+  }
   const extras = path.join(ws, 'extras')
   const deExtras = fs.existsSync(extras) ? archivosDelSitio(extras) : []
   const todos = new Set([...archivos, ...deExtras, 'seguimiento.js'])

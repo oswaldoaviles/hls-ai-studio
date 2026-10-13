@@ -14,6 +14,7 @@ mensaje antes de cambiar nada.
 | La dirección es `<proyecto>-algo.vercel.app` y no `<proyecto>.vercel.app` | Otro usuario de Vercel ya tiene ese nombre | Es normal: `publicar.mjs` guarda la dirección real en `estado.json`. Si el alumno quiere otra, cambia `proyecto` en `config.json` **antes** de la primera publicación |
 | `domains add` dice que el dominio ya está en otro proyecto o cuenta | El dominio se agregó antes en otro proyecto de Vercel (o de otra persona) | Si es del alumno, que lo quite de ese proyecto en vercel.com (Settings → Domains). Si es de otra cuenta, Vercel pide verificarlo con un registro TXT: dale el que muestre `npx vercel@latest domains inspect <dominio>` |
 | `Error: Project names can be up to 100 characters long and must be lowercase` | Nombre de proyecto con mayúsculas o espacios | Cámbialo en `config.json` (letras minúsculas, números y guiones) |
+| `preparar.mjs` avisa que un archivo pesa más de 25 MB | Casi siempre es material original que no es parte del sitio (un video sin comprimir, un PDF de marca). Antes de 0.4.1 la carpeta `insumos/` se publicaba completa (Fisioglobal, 200 MB) | Si no es del sitio, ponlo en `excluir`. Si sí, comprímelo con `ffmpeg` |
 | Archivos de más de 100 MB | Vercel no acepta archivos tan grandes en un sitio estático | Comprime el video (`ffmpeg`), o ponlo en `excluir` y súbelo a otro lado (Media Storage de GHL) |
 
 ## El sitio

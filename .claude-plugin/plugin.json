@@ -1,7 +1,7 @@
 {
   "name": "hls-ai-studio",
   "description": "Para los sitios hechos con scroll-craft: les agrega páginas (contacto, nosotros, servicios) con la misma marca del home y los publica en GoHighLevel AI Studio (mensajes para su chat, imágenes en grupos de 5, guía y verificación) o en Vercel (formularios conectados a GoHighLevel, API de conversiones de Meta, Tag Manager y dominio propio).",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": {
     "name": "Oswaldo Avilés · HighLevel Studio"
   },

@@ -46,7 +46,7 @@ pegues nada:
   `winget install Gyan.FFmpeg` en Windows.
 - **Una cuenta de GoHighLevel con AI Studio.**
 
-**Manual para alumnos, paso a paso:** https://claude.ai/artifact/PDu8xQVHPH7kJCgbhANxNU
+**Manual para alumnos, paso a paso (fase 1: crear y publicar tu sitio):** [MANUAL.md](MANUAL.md)
 
 ## Instalar (una sola vez por computadora)
 
