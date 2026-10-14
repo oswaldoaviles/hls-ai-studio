@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "<nombre>",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/servir.mjs", "4550"],
+      "port": 4550
+    }
+  ]
+}

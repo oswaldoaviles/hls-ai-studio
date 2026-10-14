@@ -174,6 +174,18 @@ pasarlo a AI Studio después.
 Necesitas una cuenta de **Vercel**. El plan gratis (Hobby) es solo para uso personal; un
 sitio de negocio va en **Pro**.
 
+## Trabajar en equipo
+
+Si alguien de tu equipo va a trabajar contigo en el sitio de un cliente:
+
+- el sitio vive en un repositorio privado de GitHub, en tu cuenta;
+- quien colabora trabaja en su rama y abre un *pull request*;
+- solo tú publicas.
+
+Pídele a Claude «crea el repositorio privado del sitio `<nombre>`, con la guía para
+colaborar, e invita a `<usuario>`». La guía completa, para los dos lados, está en la sección
+**«Trabaja en equipo»** del [manual](MANUAL.md#8-trabaja-en-equipo-opcional).
+
 ## Actualizaciones
 
 Cuando este plugin (o scroll-craft) publica una versión nueva, tu Claude Code la descarga

@@ -30,6 +30,7 @@ escritorio y en celular.
 - [ ] Revisar la propuesta y decir «dale»
 - [ ] Revisar el sitio en el navegador de Claude y pedir cambios
 - [ ] Publicar: «Migra mi sitio a AI Studio» o «Publica mi sitio en Vercel»
+- [ ] (Opcional) Trabajar en equipo: repositorio privado, una rama por persona, solo el dueño publica
 
 ---
 
@@ -398,7 +399,119 @@ Claude prueba en local, publica y vuelve a probar en vivo.
 
 ---
 
-## 8. Problemas comunes
+## 8. Trabaja en equipo (opcional)
+
+Para cuando otra persona de tu equipo va a trabajar contigo en el sitio de un cliente.
+
+| | El dueño del sitio | Quien colabora |
+|---|---|---|
+| Dónde trabaja | En su carpeta «Mis sitios» | En su propia «Mis sitios», siempre en **su rama** |
+| Cómo ve los cambios | Vista previa en Claude | Vista previa en su Claude |
+| Publica (Vercel o AI Studio) | **Sí** | No: prepara el cambio y abre un *pull request* |
+| Clave de kie.ai | La suya | La suya. Las claves son personales |
+
+El sitio vive en un **repositorio privado de GitHub**, en la cuenta del dueño. Cada quien
+trabaja en su computadora y GitHub junta el trabajo.
+
+### El dueño: prepara el repositorio (una vez por sitio)
+
+1. En una conversación nueva en «Mis sitios»:
+
+   ```
+   Crea el repositorio privado del sitio <nombre> en mi cuenta de GitHub, con la guía
+   para colaborar, e invita a <usuario de GitHub de quien colabora>.
+   ```
+
+   Claude sube la carpeta del sitio sin `insumos/` ni las pruebas. Le agrega:
+   - un `README.md` con la guía para colaborar;
+   - un `CLAUDE.md` con las reglas del equipo;
+   - la vista previa.
+
+   Luego manda la invitación. Si es la primera vez, te pide iniciar sesión en GitHub (ver el
+   paso 4 de abajo).
+2. Pásale a quien colabora el enlace del repositorio y el de este manual.
+
+### Quien colabora: la primera vez
+
+1. **Cuenta de GitHub:** créala en [github.com/signup](https://github.com/signup) y acepta la
+   invitación que te llega por correo (o en github.com/notifications).
+2. **Instala tu carpeta «Mis sitios»** con el [paso 2](#2-instala-tu-carpeta-mis-sitios-una-sola-vez)
+   de este manual. **Primero la carpeta, después el repositorio.**
+3. **Tu clave de kie.ai**, si quieres generar imágenes ([paso 3](#3-opcional-tu-clave-de-kieai)).
+   Es la tuya, no la del dueño.
+4. **Clona el sitio.** En una conversación nueva dentro de «Mis sitios»:
+
+   ```
+   Clona el repositorio <dueño>/<repositorio> en scrollcraft/builds/<nombre> y ábrelo.
+   ```
+
+   - **En Mac** puede aparecer una ventana para instalar las herramientas de desarrollador
+     de Apple (traen git). Da **Instalar** y espera de 5 a 15 minutos.
+   - **Para entrar a GitHub**, Claude instala GitHub CLI y te muestra un código de 8
+     caracteres. Abre [github.com/login/device](https://github.com/login/device), entra con tu
+     cuenta, pega el código y da **Authorize**.
+   - **No uses un token ni tu contraseña.** Un token «fine-grained» solo abre los repositorios
+     de *tu* cuenta y da el error 403 «Write access to repository not granted».
+5. **Mira el sitio:**
+
+   ```
+   Abre la vista previa del sitio.
+   ```
+
+### Quien colabora: cada cambio
+
+1. **Arranca de la versión al día:**
+
+   ```
+   Actualiza mi copia de <nombre> desde main.
+   ```
+
+2. **Crea tu rama**, con un nombre corto de lo que vas a hacer:
+
+   ```
+   Crea mi rama para «cambiar los textos de servicios».
+   ```
+
+3. **Pide el cambio** con tus palabras. Claude te propone y cambia con tu «dale». Revísalo en
+   la vista previa, en escritorio y en celular.
+4. **Súbelo:**
+
+   ```
+   Sube mis cambios y abre el pull request para <dueño>.
+   ```
+
+   Claude te da el enlace del *pull request*. Mándaselo al dueño.
+
+Nunca trabajes en `main` ni publiques: eso lo hace el dueño.
+
+### El dueño: revisa, une y publica
+
+1. **Revisa y une:**
+
+   ```
+   Revisa el pull request de <nombre> en <repositorio> y, si está bien, únelo.
+   ```
+
+2. **Publica:**
+   - **Vercel:** «Actualiza mi copia de <nombre> y publica los cambios».
+   - **AI Studio:** descarga el proyecto en blanco (*Code → Download Codebase*) y pásale el
+     ZIP a quien colabora. Él le pide a su Claude: «Prepara el kit para migrar <nombre> a AI
+     Studio. No voy a pegar los mensajes: los pega <dueño>», y sube el kit a su rama. Tú lo
+     traes y pegas los mensajes con tu Claude.
+3. **Revisa** el cambio en la dirección publicada.
+
+### Si algo falla al colaborar
+
+| Lo que ves | Qué es y qué hacer |
+|---|---|
+| **404** al clonar | Git todavía no inició sesión. Con un repositorio privado, GitHub responde «no existe». Entra con GitHub CLI (paso 4) |
+| **403** «Write access to repository not granted» | Git guardó una credencial que no sirve (un token o la contraseña). Pídele a Claude que la borre del llavero y entre con GitHub CLI |
+| No llega la invitación | Revisa github.com/notifications o pídele al dueño que la reenvíe |
+| Claude habla de un «conflicto» | Dos personas cambiaron lo mismo. Pídele «resuelve el conflicto con main» y que te pregunte si duda |
+
+---
+
+## 9. Problemas comunes
 
 | Lo que ves | Qué hacer |
 |---|---|
@@ -415,7 +528,7 @@ Claude prueba en local, publica y vuelve a probar en vivo.
 
 ---
 
-## 9. Antes de grabar o de entregar a tu cliente
+## 10. Antes de grabar o de entregar a tu cliente
 
 - [ ] Todas las fotos son reales o, si son generadas, no muestran a personas que «son» la marca
 - [ ] No hay `[pendiente]` a la vista

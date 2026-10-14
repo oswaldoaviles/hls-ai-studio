@@ -76,6 +76,21 @@ con sus formularios conectados a GoHighLevel). Para muchos alumnos es su primera
   en `scrollcraft/builds/<nombre>-ai-studio/`.
 - **Publicarlo en Vercel:** usa publicar-en-vercel. Su espacio va junto al sitio, en
   `scrollcraft/builds/<nombre>-vercel/`. Para los cambios, «publica los cambios».
+- **Trabajar en equipo** (cuando pida «crea el repositorio del sitio X e invita a Y»):
+  1. Copia a la carpeta del sitio los archivos de `plantilla-equipo/` del plugin hls-ai-studio
+     (búscala con `find ~/.claude/plugins/cache -type d -path '*hls-ai-studio/*/plantilla-equipo' | sort -V | tail -1`)
+     y reemplaza los `<…>` de `README.md`, `CLAUDE.md` y `.claude/launch.json`. Si el sitio ya
+     tiene `README.md` o `CLAUDE.md`, junta el contenido, no lo pises.
+  2. Revisa la sesión de GitHub CLI (`gh auth status`; si no hay, `gh auth login --web` y
+     `gh auth setup-git`).
+  3. `git init -b main`, revisa que `insumos/` no entre, haz el commit y crea el repositorio
+     privado en su cuenta: `gh repo create <usuario>/<nombre>-web --private --source . --push`.
+  4. Invita: `gh api -X PUT repos/<usuario>/<nombre>-web/collaborators/<invitado> -f permission=push`.
+  5. Dale el enlace del repositorio y el mensaje para quien colabora (está en el `README.md`).
+- **Clonar el sitio de un equipo:** primero esta carpeta, después el repositorio, en
+  `scrollcraft/builds/<nombre>/`. Para entrar a GitHub usa GitHub CLI (`gh auth login --web`,
+  `gh auth setup-git`); nunca pidas un token ni la contraseña: un token «fine-grained» de otra
+  cuenta da 403. Sigue el `CLAUDE.md` del repositorio: ramas, pull requests y no publicar.
 - **Los ZIP de AI Studio** suelen estar en la carpeta Descargas del alumno.
 - **No borres ni muevas** nada de `scrollcraft/builds/` sin preguntarle: ahí están sus
   sitios.

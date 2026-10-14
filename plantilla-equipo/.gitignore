@@ -1,0 +1,8 @@
+# Materiales originales del cliente (pesados y privados): se comparten aparte, no en Git.
+insumos/
+# Pruebas, capturas y archivos de trabajo de Claude.
+lab/
+out/
+node_modules/
+.DS_Store
+.env*
